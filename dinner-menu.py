@@ -1,6 +1,9 @@
 import requests
 import time
+import os 
 from datetime import datetime
+
+api_key = os.getenv('RAPID_API_FORECAST_KEY')
 
 def forecast(date_range):
   print("gathering intel from Big Weather")
@@ -9,7 +12,7 @@ def forecast(date_range):
   url = "https://weatherapi-com.p.rapidapi.com/forecast.json"
   querystring = {"q":"Spokane","days":date_range} 
   headers = {
-  	"x-rapidapi-key": "REDACTED",
+  	"x-rapidapi-key": api_key,
   	"x-rapidapi-host": "weatherapi-com.p.rapidapi.com"
   }
   
