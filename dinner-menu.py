@@ -9,7 +9,7 @@ def forecast(date_range):
   url = "https://weatherapi-com.p.rapidapi.com/forecast.json"
   querystring = {"q":"Spokane","days":date_range} 
   headers = {
-  	"x-rapidapi-key": "e83f4ef893mshde26f360b6b202ep14d34fjsnc0591e58501d",
+  	"x-rapidapi-key": "REDACTED",
   	"x-rapidapi-host": "weatherapi-com.p.rapidapi.com"
   }
   
