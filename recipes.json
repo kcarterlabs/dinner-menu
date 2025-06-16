@@ -1,0 +1,48 @@
+[
+  {
+    "title": "Hearty Dutch Oven Beef Stew",
+    "date": "2025-06-15",
+    "ingredients": [
+      "1 medium yellow onion, diced",
+      "5 cloves garlic, minced",
+      "3 large carrots, peeled and chopped",
+      "1 teaspoon fresh thyme, roughly chopped",
+      "2 tablespoons tomato paste",
+      "2 teaspoons Worcestershire sauce",
+      "½ cup red wine - or beef broth",
+      "¼ cup all-purpose flour, plus more as needed",
+      "4 cups beef broth, plus more as needed",
+      "3 medium Yukon gold potatoes, peeled and diced - see note below",
+      "2 dried bay leaves",
+      "Chopped parsley",
+      "Olive oil",
+      "Salt and pepper to taste",
+      "Frozen or fresh green peas - optional"
+    ],
+    "oven": true,
+    "stove": true,
+    "portions": "3"
+  },
+  {
+    "title": "Ham Help",
+    "date": "2025-06-15",
+    "ingredients": [
+      "1 yellow onion",
+      "2 cloves garlic",
+      "1 Tbsp olive oil",
+      "1 lb. ground beef",
+      "2 Tbsp all-purpose flour",
+      "1 Tbsp chili powder",
+      "1/2 tsp smoked paprika",
+      "1/2 tsp garlic powder",
+      "1/2 tsp dried oregan",
+      "8 oz. tomato sauce",
+      "3 cups beef broth",
+      "1/2 lb. uncooked macaroni",
+      "1 cup shredded cheddar"
+    ],
+    "oven": false,
+    "stove": true,
+    "portions": "2"
+  }
+]
