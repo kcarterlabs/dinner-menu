@@ -230,41 +230,5 @@
         "oven": true,
         "stove": true,
         "portions": "3"
-    },
-    {
-        "title": "Burrito Bowls",
-        "date": "2025-09-05",
-        "ingredients": [
-            "2 chicken breast",
-            "1 portion rice",
-            "1/2 cup pico de gallo",
-            "black beans",
-            "shredded cheese",
-            "chili powder",
-            "1/2 red onion",
-            "1/2 avocado",
-            "sweet potato"
-        ],
-        "oven": false,
-        "stove": true,
-        "portions": "2"
-    },
-    {
-        "title": "Chicken and Brussels Sprouts with Apple Cider Sauce",
-        "date": "2025-09-05",
-        "ingredients": [
-            "1 pound brussels sprouts",
-            "2 sweet apples (like gala)",
-            "1 red onion",
-            "rosemary",
-            "olive oil",
-            "2 tablespoons butter",
-            "4 chicken breast",
-            "2/3 cup apple cider",
-            "apple cider vinegar"
-        ],
-        "oven": true,
-        "stove": true,
-        "portions": "3"
     }
 ]
