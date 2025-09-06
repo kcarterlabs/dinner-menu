@@ -146,15 +146,5 @@
         "oven": false,
         "stove": true,
         "portions": "2"
-    },
-    {
-        "title": "Try a New Recipe!",
-        "date": "2025-09-05",
-        "ingredients": [
-            "Look it up in the recipe book!"
-        ],
-        "oven": true,
-        "stove": true,
-        "portions": "2"
     }
 ]
