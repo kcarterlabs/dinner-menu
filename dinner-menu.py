@@ -43,7 +43,7 @@ def forecast(date_range):
 
 def dinner_logic(weather, date_range):
     temps = [float(entry.split(':')[1].replace('°F', '').strip()) for entry in weather]
-    too_hot = any(temp > 110 for temp in temps)
+    too_hot = any(temp > 90 for temp in temps)
 
     with open('recipes.json', 'r') as file:
         data = json.load(file)
