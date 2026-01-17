@@ -7,6 +7,8 @@ from datetime import datetime
 import requests
 import time
 import random
+import logging
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend access
@@ -14,6 +16,30 @@ CORS(app)  # Enable CORS for frontend access
 # Configuration
 RECIPES_FILE = "recipes.json"
 BACKUP_DIR = "backups"
+
+# Logging configuration
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+file_handler = RotatingFileHandler('logs/api.log', maxBytes=10240000, backupCount=10)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+file_handler.setLevel(logging.INFO)
+app.logger.addHandler(file_handler)
+
+app.logger.setLevel(logging.INFO)
+app.logger.info('Dinner Menu API startup')
+
+# Request logging middleware
+@app.before_request
+def log_request():
+    app.logger.info(f'{request.method} {request.path} - {request.remote_addr}')
+
+@app.after_request
+def log_response(response):
+    app.logger.info(f'{request.method} {request.path} - Status: {response.status_code}')
+    return response
 
 # ============= Recipe Management Functions =============
 
@@ -131,12 +157,15 @@ def select_dinner_recipes(weather_data, days):
 @app.route('/api/health', methods=['GET'])
 def health():
     """Health check endpoint."""
+    app.logger.info('Health check requested')
     return jsonify({"status": "healthy", "message": "Dinner Menu API is running"})
 
 @app.route('/api/recipes', methods=['GET'])
 def get_recipes():
     """Get all recipes."""
+    app.logger.info('Fetching all recipes')
     recipes = load_recipes()
+    app.logger.info(f'Returned {len(recipes)} recipes')
     return jsonify({
         "success": True,
         "count": len(recipes),
@@ -148,11 +177,13 @@ def add_recipe():
     """Add a new recipe."""
     try:
         data = request.get_json()
+        app.logger.info(f'Adding new recipe: {data.get("title", "Unknown")}')
         
         # Validate required fields
         required_fields = ['title', 'ingredients']
         for field in required_fields:
             if field not in data:
+                app.logger.warning(f'Missing required field: {field}')
                 return jsonify({
                     "success": False,
                     "error": f"Missing required field: {field}"
@@ -172,6 +203,7 @@ def add_recipe():
         recipes = load_recipes()
         recipes.append(recipe)
         save_recipes(recipes)
+        app.logger.info(f'Recipe "{recipe["title"]}" added successfully')
         
         return jsonify({
             "success": True,
@@ -180,6 +212,7 @@ def add_recipe():
         }), 201
         
     except Exception as e:
+        app.logger.error(f'Error adding recipe: {str(e)}')
         return jsonify({
             "success": False,
             "error": str(e)
@@ -189,9 +222,11 @@ def add_recipe():
 def delete_recipe(index):
     """Delete a recipe by index."""
     try:
+        app.logger.info(f'Attempting to delete recipe at index {index}')
         recipes = load_recipes()
         
         if index < 0 or index >= len(recipes):
+            app.logger.warning(f'Recipe index {index} out of range')
             return jsonify({
                 "success": False,
                 "error": "Recipe index out of range"
@@ -199,6 +234,7 @@ def delete_recipe(index):
         
         deleted_recipe = recipes.pop(index)
         save_recipes(recipes)
+        app.logger.info(f'Recipe "{deleted_recipe["title"]}" deleted successfully')
         
         return jsonify({
             "success": True,
@@ -207,6 +243,7 @@ def delete_recipe(index):
         })
         
     except Exception as e:
+        app.logger.error(f'Error deleting recipe: {str(e)}')
         return jsonify({
             "success": False,
             "error": str(e)
@@ -217,14 +254,17 @@ def get_weather():
     """Get weather forecast."""
     try:
         days = request.args.get('days', default=7, type=int)
+        app.logger.info(f'Fetching weather forecast for {days} days')
         
         if days < 1 or days > 14:
+            app.logger.warning(f'Invalid days requested: {days}')
             return jsonify({
                 "success": False,
                 "error": "Days must be between 1 and 14"
             }), 400
         
         weather_data = get_weather_forecast(days)
+        app.logger.info(f'Weather forecast retrieved successfully')
         
         return jsonify({
             "success": True,
@@ -232,6 +272,7 @@ def get_weather():
         })
         
     except Exception as e:
+        app.logger.error(f'Error fetching weather: {str(e)}')
         return jsonify({
             "success": False,
             "error": str(e)
@@ -242,8 +283,10 @@ def get_dinner_menu():
     """Get dinner menu suggestions based on weather and days."""
     try:
         days = request.args.get('days', default=7, type=int)
+        app.logger.info(f'Generating dinner menu for {days} days with weather')
         
         if days < 1 or days > 14:
+            app.logger.warning(f'Invalid days requested: {days}')
             return jsonify({
                 "success": False,
                 "error": "Days must be between 1 and 14"
@@ -254,6 +297,7 @@ def get_dinner_menu():
         
         # Select recipes
         dinner_plan = select_dinner_recipes(weather_data, days)
+        app.logger.info(f'Selected {len(dinner_plan["selected_recipes"])} recipes for dinner menu')
         
         return jsonify({
             "success": True,
@@ -262,6 +306,7 @@ def get_dinner_menu():
         })
         
     except Exception as e:
+        app.logger.error(f'Error generating dinner menu: {str(e)}')
         return jsonify({
             "success": False,
             "error": str(e)
@@ -272,8 +317,10 @@ def get_quick_dinner_menu():
     """Get dinner menu suggestions without weather (random selection)."""
     try:
         days = request.args.get('days', default=7, type=int)
+        app.logger.info(f'Generating quick dinner menu for {days} days')
         
         if days < 1 or days > 14:
+            app.logger.warning(f'Invalid days requested: {days}')
             return jsonify({
                 "success": False,
                 "error": "Days must be between 1 and 14"
@@ -294,6 +341,7 @@ def get_quick_dinner_menu():
                 break
         
         grocery_list = generate_grocery_list(selected_recipes)
+        app.logger.info(f'Selected {len(selected_recipes)} recipes for quick menu')
         
         return jsonify({
             "success": True,
@@ -306,10 +354,12 @@ def get_quick_dinner_menu():
         })
         
     except Exception as e:
+        app.logger.error(f'Error generating quick menu: {str(e)}')
         return jsonify({
             "success": False,
             "error": str(e)
         }), 500
 
 if __name__ == '__main__':
+    app.logger.info('Starting Flask API server')
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,10 +1,28 @@
 import streamlit as st
 import requests
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
+
+# Logging configuration
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('logs/streamlit.log', maxBytes=10240000, backupCount=10),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+logger.info('Streamlit app starting')
 
 # Configuration
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:5000/api')
+logger.info(f'Using API base URL: {API_BASE_URL}')
 
 st.set_page_config(
     page_title="Dinner Menu Planner",
@@ -38,53 +56,92 @@ if 'recipes' not in st.session_state:
 def get_recipes():
     """Fetch all recipes from API"""
     try:
+        logger.info('Fetching recipes from API')
         response = requests.get(f"{API_BASE_URL}/recipes")
         if response.status_code == 200:
             data = response.json()
+            logger.info(f'Successfully fetched {len(data.get("recipes", []))} recipes')
             return data.get('recipes', [])
+        logger.warning(f'Failed to fetch recipes: Status {response.status_code}')
         return []
     except Exception as e:
+        logger.error(f'Error fetching recipes: {e}')
         st.error(f"Error fetching recipes: {e}")
         return []
 
 def add_recipe_api(recipe_data):
     """Add a recipe via API"""
     try:
+        logger.info(f'Adding recipe: {recipe_data.get("title", "Unknown")}')
         response = requests.post(f"{API_BASE_URL}/recipes", json=recipe_data)
-        return response.json()
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Recipe "{recipe_data.get("title")}" added successfully')
+        else:
+            logger.warning(f'Failed to add recipe: {result.get("error")}')
+        return result
     except Exception as e:
+        logger.error(f'Error adding recipe: {e}')
         return {"success": False, "error": str(e)}
 
 def delete_recipe_api(index):
     """Delete a recipe via API"""
     try:
+        logger.info(f'Deleting recipe at index {index}')
         response = requests.delete(f"{API_BASE_URL}/recipes/{index}")
-        return response.json()
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Recipe deleted successfully')
+        else:
+            logger.warning(f'Failed to delete recipe: {result.get("error")}')
+        return result
     except Exception as e:
+        logger.error(f'Error deleting recipe: {e}')
         return {"success": False, "error": str(e)}
 
 def get_dinner_menu(days):
     """Get dinner menu with weather"""
     try:
+        logger.info(f'Getting dinner menu for {days} days with weather')
         response = requests.get(f"{API_BASE_URL}/dinner-menu", params={"days": days})
-        return response.json()
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Dinner menu retrieved successfully')
+        else:
+            logger.warning(f'Failed to get dinner menu: {result.get("error")}')
+        return result
     except Exception as e:
+        logger.error(f'Error getting dinner menu: {e}')
         return {"success": False, "error": str(e)}
 
 def get_quick_dinner_menu(days):
     """Get dinner menu without weather"""
     try:
+        logger.info(f'Getting quick dinner menu for {days} days')
         response = requests.get(f"{API_BASE_URL}/dinner-menu/quick", params={"days": days})
-        return response.json()
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Quick menu retrieved successfully')
+        else:
+            logger.warning(f'Failed to get quick menu: {result.get("error")}')
+        return result
     except Exception as e:
+        logger.error(f'Error getting quick menu: {e}')
         return {"success": False, "error": str(e)}
 
 def get_weather(days):
     """Get weather forecast"""
     try:
+        logger.info(f'Getting weather forecast for {days} days')
         response = requests.get(f"{API_BASE_URL}/weather", params={"days": days})
-        return response.json()
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Weather forecast retrieved successfully')
+        else:
+            logger.warning(f'Failed to get weather: {result.get("error")}')
+        return result
     except Exception as e:
+        logger.error(f'Error getting weather: {e}')
         return {"success": False, "error": str(e)}
 
 # Main app

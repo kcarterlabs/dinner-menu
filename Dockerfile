@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
+# Create logs directory
+RUN mkdir -p logs
+
 # Expose ports
 EXPOSE 5000 8501
 

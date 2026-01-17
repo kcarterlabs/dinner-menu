@@ -11,6 +11,7 @@ services:
     volumes:
       - ./recipes.json:/app/recipes.json
       - ./backups:/app/backups
+      - ./logs:/app/logs
     command: python app.py
     networks:
       - dinner-menu-network
