@@ -1,0 +1,33 @@
+# Streamlit Frontend Dockerfile
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY streamlit_app.py .
+COPY .streamlit /app/.streamlit
+
+# Create Streamlit config to bind to 0.0.0.0
+RUN mkdir -p /app/.streamlit && \
+    echo "[server]" > /app/.streamlit/config.toml && \
+    echo "headless = true" >> /app/.streamlit/config.toml && \
+    echo "address = \"0.0.0.0\"" >> /app/.streamlit/config.toml && \
+    echo "port = 8501" >> /app/.streamlit/config.toml && \
+    echo "enableCORS = false" >> /app/.streamlit/config.toml && \
+    echo "enableXsrfProtection = false" >> /app/.streamlit/config.toml
+
+# Expose Streamlit port
+EXPOSE 8501
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Run Streamlit
+CMD ["streamlit", "run", "streamlit_app.py", "--server.address=0.0.0.0"]

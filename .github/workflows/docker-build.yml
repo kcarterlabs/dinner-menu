@@ -129,8 +129,8 @@ jobs:
           set -euo pipefail
           echo "Building frontend image..."
           echo "Target: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
-          # Build and push frontend with SHA tag
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . || { echo "❌ Frontend build failed"; exit 1; }
+          # Build and push frontend with SHA tag using Dockerfile.frontend
+          docker build -f Dockerfile.frontend -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . || { echo "❌ Frontend build failed"; exit 1; }
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG || { echo "❌ Frontend push failed"; exit 1; }
           # Tag and push as latest only if the above succeeded
           docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest || { echo "❌ Frontend tag failed"; exit 1; }
