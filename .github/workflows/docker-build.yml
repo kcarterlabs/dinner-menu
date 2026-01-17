@@ -42,6 +42,29 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
       
+      - name: Verify ECR repositories exist
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        run: |
+          echo "Verifying ECR repositories..."
+          echo "Registry: ${{ steps.login-ecr.outputs.registry }}"
+          echo "Backend repo: ${{ secrets.ECR_REGISTRY_BACKEND }}"
+          echo "Frontend repo: ${{ secrets.ECR_REGISTRY_FRONTEND }}"
+          
+          # Check if repositories exist
+          if ! aws ecr describe-repositories --repository-names ${{ secrets.ECR_REGISTRY_BACKEND }} --region us-west-2 > /dev/null 2>&1; then
+            echo "❌ ERROR: Backend repository '${{ secrets.ECR_REGISTRY_BACKEND }}' does not exist!"
+            echo "Create it with: aws ecr create-repository --repository-name ${{ secrets.ECR_REGISTRY_BACKEND }} --region us-west-2"
+            exit 1
+          fi
+          
+          if ! aws ecr describe-repositories --repository-names ${{ secrets.ECR_REGISTRY_FRONTEND }} --region us-west-2 > /dev/null 2>&1; then
+            echo "❌ ERROR: Frontend repository '${{ secrets.ECR_REGISTRY_FRONTEND }}' does not exist!"
+            echo "Create it with: aws ecr create-repository --repository-name ${{ secrets.ECR_REGISTRY_FRONTEND }} --region us-west-2"
+            exit 1
+          fi
+          
+          echo "✅ Both ECR repositories exist"
+      
       - name: Build, tag, and push backend image to Amazon ECR
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         env:
@@ -50,12 +73,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "Building backend image..."
+          echo "Target: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
           # Build and push backend with SHA tag
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . && \
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG && \
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . || { echo "❌ Backend build failed"; exit 1; }
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG || { echo "❌ Backend push failed"; exit 1; }
           # Tag and push as latest only if the above succeeded
-          docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest && \
-          docker push $REGISTRY/$REPOSITORY:latest
+          docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest || { echo "❌ Backend tag failed"; exit 1; }
+          docker push $REGISTRY/$REPOSITORY:latest || { echo "❌ Backend push latest failed"; exit 1; }
           echo "✅ Backend image pushed successfully"
       
       - name: Build, tag, and push frontend image to Amazon ECR
@@ -66,12 +90,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "Building frontend image..."
+          echo "Target: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
           # Build and push frontend with SHA tag
-          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . && \
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG && \
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . || { echo "❌ Frontend build failed"; exit 1; }
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG || { echo "❌ Frontend push failed"; exit 1; }
           # Tag and push as latest only if the above succeeded
-          docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest && \
-          docker push $REGISTRY/$REPOSITORY:latest
+          docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest || { echo "❌ Frontend tag failed"; exit 1; }
+          docker push $REGISTRY/$REPOSITORY:latest || { echo "❌ Frontend push latest failed"; exit 1; }
           echo "✅ Frontend image pushed successfully"
       
       - name: Build summary
