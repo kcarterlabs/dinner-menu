@@ -1,0 +1,470 @@
+import streamlit as st
+import requests
+from datetime import datetime
+
+# Configuration
+API_BASE_URL = "http://localhost:5000/api"
+
+st.set_page_config(
+    page_title="Dinner Menu Planner",
+    page_icon="🍽️",
+    layout="wide"
+)
+
+# Custom CSS
+st.markdown("""
+    <style>
+    .recipe-card {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f0f2f6;
+        margin: 10px 0;
+    }
+    .weather-card {
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #e8f4f8;
+        margin: 5px 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'recipes' not in st.session_state:
+    st.session_state.recipes = []
+
+# Helper functions
+def get_recipes():
+    """Fetch all recipes from API"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/recipes")
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('recipes', [])
+        return []
+    except Exception as e:
+        st.error(f"Error fetching recipes: {e}")
+        return []
+
+def add_recipe_api(recipe_data):
+    """Add a recipe via API"""
+    try:
+        response = requests.post(f"{API_BASE_URL}/recipes", json=recipe_data)
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def delete_recipe_api(index):
+    """Delete a recipe via API"""
+    try:
+        response = requests.delete(f"{API_BASE_URL}/recipes/{index}")
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def get_dinner_menu(days):
+    """Get dinner menu with weather"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/dinner-menu", params={"days": days})
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def get_quick_dinner_menu(days):
+    """Get dinner menu without weather"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/dinner-menu/quick", params={"days": days})
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def get_weather(days):
+    """Get weather forecast"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/weather", params={"days": days})
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# Main app
+st.title("🍽️ Dinner Menu Planner")
+st.markdown("---")
+
+# Sidebar navigation
+page = st.sidebar.selectbox(
+    "Navigate",
+    ["🏠 Home", "📋 View Recipes", "➕ Add Recipe", "🌤️ Weather", "🍲 Dinner Menu"]
+)
+
+# HOME PAGE
+if page == "🏠 Home":
+    st.header("Welcome to Dinner Menu Planner!")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Recipes", len(get_recipes()))
+    
+    with col2:
+        if st.button("🍲 Quick Menu (7 days)", use_container_width=True):
+            with st.spinner("Generating menu..."):
+                result = get_quick_dinner_menu(7)
+                if result.get('success'):
+                    st.session_state.quick_menu = result
+                    st.rerun()
+    
+    with col3:
+        if st.button("🌤️ Check Weather", use_container_width=True):
+            with st.spinner("Fetching weather..."):
+                result = get_weather(7)
+                if result.get('success'):
+                    st.session_state.weather_data = result
+                    st.rerun()
+    
+    st.markdown("---")
+    
+    # Display quick menu if available
+    if 'quick_menu' in st.session_state:
+        st.subheader("Quick Menu Plan")
+        dinner_plan = st.session_state.quick_menu.get('dinner_plan', {})
+        selected = dinner_plan.get('selected_recipes', [])
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.info(f"📊 Total portions: {dinner_plan.get('total_portions')} for {dinner_plan.get('days_requested')} days")
+            
+            for idx, recipe in enumerate(selected, 1):
+                with st.expander(f"{idx}. {recipe['title']} - {recipe['portions']} portions"):
+                    st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
+                    st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
+                    st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
+                    st.write("**Ingredients:**")
+                    for ing in recipe.get('ingredients', []):
+                        st.write(f"  • {ing}")
+        
+        with col2:
+            st.success("🛒 Grocery List")
+            grocery_list = dinner_plan.get('grocery_list', [])
+            if grocery_list:
+                # Create downloadable text
+                grocery_text = "GROCERY LIST\n" + "="*30 + "\n\n"
+                for item in grocery_list:
+                    if item['count'] > 1:
+                        grocery_text += f"☐ {item['ingredient']} (×{item['count']})\n"
+                        st.write(f"☐ {item['ingredient']} (×{item['count']})")
+                    else:
+                        grocery_text += f"☐ {item['ingredient']}\n"
+                        st.write(f"☐ {item['ingredient']}")
+                
+                st.download_button(
+                    label="📥 Download List",
+                    data=grocery_text,
+                    file_name="grocery_list.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+            else:
+                st.write("No ingredients found")
+    
+    # Display weather if available
+    if 'weather_data' in st.session_state:
+        st.subheader("Weather Forecast")
+        weather = st.session_state.weather_data.get('weather', {})
+        st.write(f"📍 **Location:** {weather.get('location')}")
+        
+        cols = st.columns(min(len(weather.get('forecast', [])), 4))
+        for idx, day_data in enumerate(weather.get('forecast', [])):
+            with cols[idx % 4]:
+                st.metric(
+                    day_data['day'],
+                    f"{day_data['temp']}°F",
+                    delta=None
+                )
+
+# VIEW RECIPES PAGE
+elif page == "📋 View Recipes":
+    st.header("📋 Recipe Collection")
+    
+    recipes = get_recipes()
+    
+    if not recipes:
+        st.info("No recipes found. Add some recipes to get started!")
+    else:
+        st.write(f"**Total Recipes:** {len(recipes)}")
+        
+        # Filter options
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            filter_oven = st.checkbox("Show only non-oven recipes")
+        with col2:
+            filter_stove = st.checkbox("Show only stove recipes")
+        with col3:
+            search = st.text_input("🔍 Search recipes", "")
+        
+        # Apply filters
+        filtered_recipes = recipes
+        if filter_oven:
+            filtered_recipes = [r for r in filtered_recipes if not r.get('oven')]
+        if filter_stove:
+            filtered_recipes = [r for r in filtered_recipes if r.get('stove')]
+        if search:
+            filtered_recipes = [r for r in filtered_recipes if search.lower() in r.get('title', '').lower()]
+        
+        st.markdown("---")
+        
+        # Display recipes
+        for idx, recipe in enumerate(filtered_recipes):
+            col1, col2 = st.columns([4, 1])
+            
+            with col1:
+                with st.expander(f"🍽️ {recipe['title']} ({recipe.get('portions', '1')} portions)"):
+                    st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
+                    st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
+                    st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
+                    st.write("**Ingredients:**")
+                    for ing in recipe.get('ingredients', []):
+                        st.write(f"  • {ing}")
+            
+            with col2:
+                # Find original index
+                original_idx = recipes.index(recipe)
+                if st.button("🗑️ Delete", key=f"delete_{original_idx}"):
+                    result = delete_recipe_api(original_idx)
+                    if result.get('success'):
+                        st.success("Recipe deleted!")
+                        st.rerun()
+                    else:
+                        st.error(f"Error: {result.get('error')}")
+
+# ADD RECIPE PAGE
+elif page == "➕ Add Recipe":
+    st.header("➕ Add New Recipe")
+    
+    with st.form("add_recipe_form"):
+        title = st.text_input("Recipe Title*", placeholder="e.g., Spaghetti Carbonara")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            oven = st.checkbox("Requires Oven")
+            portions = st.number_input("Portions", min_value=1, max_value=20, value=4)
+        with col2:
+            stove = st.checkbox("Requires Stove")
+            date = st.date_input("Date", datetime.now())
+        
+        ingredients_text = st.text_area(
+            "Ingredients* (one per line or comma-separated)",
+            placeholder="pasta\neggs\nbacon\nparmesan cheese"
+        )
+        
+        submitted = st.form_submit_button("Add Recipe", use_container_width=True)
+        
+        if submitted:
+            if not title or not ingredients_text:
+                st.error("Please fill in all required fields (marked with *)")
+            else:
+                # Parse ingredients
+                if '\n' in ingredients_text:
+                    ingredients = [i.strip() for i in ingredients_text.split('\n') if i.strip()]
+                else:
+                    ingredients = [i.strip() for i in ingredients_text.split(',') if i.strip()]
+                
+                recipe_data = {
+                    "title": title,
+                    "date": date.strftime('%Y-%m-%d'),
+                    "ingredients": ingredients,
+                    "oven": oven,
+                    "stove": stove,
+                    "portions": str(portions)
+                }
+                
+                with st.spinner("Adding recipe..."):
+                    result = add_recipe_api(recipe_data)
+                
+                if result.get('success'):
+                    st.success(f"✅ Recipe '{title}' added successfully!")
+                    st.balloons()
+                else:
+                    st.error(f"❌ Error: {result.get('error')}")
+
+# WEATHER PAGE
+elif page == "🌤️ Weather":
+    st.header("🌤️ Weather Forecast")
+    
+    days = st.slider("Number of days", min_value=1, max_value=14, value=7)
+    
+    if st.button("Get Weather Forecast", use_container_width=True):
+        with st.spinner("Fetching weather..."):
+            result = get_weather(days)
+        
+        if result.get('success'):
+            weather = result.get('weather', {})
+            st.success(f"📍 Location: {weather.get('location')}")
+            
+            st.markdown("---")
+            
+            forecast = weather.get('forecast', [])
+            cols = st.columns(min(len(forecast), 4))
+            
+            for idx, day_data in enumerate(forecast):
+                with cols[idx % 4]:
+                    st.markdown(f"""
+                    <div class="weather-card">
+                        <h3>{day_data['day']}</h3>
+                        <p>{day_data['date']}</p>
+                        <h2>{day_data['temp']}°F</h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+            
+            # Check if too hot
+            temps = [day['temp'] for day in forecast]
+            if any(temp > 90 for temp in temps):
+                st.warning("🔥 Some days exceed 90°F - oven recipes will be excluded from dinner menu!")
+        else:
+            st.error(f"❌ Error: {result.get('error')}")
+
+# DINNER MENU PAGE
+elif page == "🍲 Dinner Menu":
+    st.header("🍲 Generate Dinner Menu")
+    
+    tab1, tab2 = st.tabs(["🌤️ Weather-Based Menu", "⚡ Quick Menu"])
+    
+    with tab1:
+        st.write("Generate a dinner menu that considers weather conditions")
+        
+        days = st.slider("Number of days", min_value=1, max_value=14, value=7, key="weather_days")
+        
+        if st.button("Generate Weather-Based Menu", use_container_width=True):
+            with st.spinner("Analyzing weather and selecting recipes..."):
+                result = get_dinner_menu(days)
+            
+            if result.get('success'):
+                # Display weather
+                weather = result.get('weather', {})
+                st.success(f"📍 Location: {weather.get('location')}")
+                
+                forecast = weather.get('forecast', [])
+                cols = st.columns(min(len(forecast), 4))
+                for idx, day_data in enumerate(forecast):
+                    with cols[idx % 4]:
+                        st.metric(day_data['day'], f"{day_data['temp']}°F")
+                
+                st.markdown("---")
+                
+                # Display menu
+                dinner_plan = result.get('dinner_plan', {})
+                selected = dinner_plan.get('selected_recipes', [])
+                
+                if dinner_plan.get('too_hot_for_oven'):
+                    st.warning("🔥 Oven recipes excluded due to high temperatures!")
+                
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.info(f"📊 Total portions: {dinner_plan.get('total_portions')} for {dinner_plan.get('days_requested')} days")
+                    
+                    for idx, recipe in enumerate(selected, 1):
+                        with st.expander(f"Day {idx}: {recipe['title']} - {recipe['portions']} portions"):
+                            col_a, col_b = st.columns(2)
+                            with col_a:
+                                st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
+                                st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
+                            with col_b:
+                                st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
+                                st.write(f"**Portions:** {recipe['portions']}")
+                            
+                            st.write("**Ingredients:**")
+                            for ing in recipe.get('ingredients', []):
+                                st.write(f"  • {ing}")
+                
+                with col2:
+                    st.success("🛒 Grocery List")
+                    grocery_list = dinner_plan.get('grocery_list', [])
+                    if grocery_list:
+                        # Create downloadable text
+                        grocery_text = "GROCERY LIST\n" + "="*30 + "\n\n"
+                        for item in grocery_list:
+                            if item['count'] > 1:
+                                grocery_text += f"☐ {item['ingredient']} (×{item['count']})\n"
+                                st.write(f"☐ {item['ingredient']} (×{item['count']})")
+                            else:
+                                grocery_text += f"☐ {item['ingredient']}\n"
+                                st.write(f"☐ {item['ingredient']}")
+                        
+                        st.download_button(
+                            label="📥 Download List",
+                            data=grocery_text,
+                            file_name="grocery_list.txt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
+                    else:
+                        st.write("No ingredients found")
+            else:
+                st.error(f"❌ Error: {result.get('error')}")
+    
+    with tab2:
+        st.write("Generate a quick menu without weather consideration")
+        
+        days_quick = st.slider("Number of days", min_value=1, max_value=14, value=7, key="quick_days")
+        
+        if st.button("Generate Quick Menu", use_container_width=True):
+            with st.spinner("Selecting recipes..."):
+                result = get_quick_dinner_menu(days_quick)
+            
+            if result.get('success'):
+                dinner_plan = result.get('dinner_plan', {})
+                selected = dinner_plan.get('selected_recipes', [])
+                
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.info(f"📊 Total portions: {dinner_plan.get('total_portions')} for {dinner_plan.get('days_requested')} days")
+                    
+                    for idx, recipe in enumerate(selected, 1):
+                        with st.expander(f"Day {idx}: {recipe['title']} - {recipe['portions']} portions"):
+                            col_a, col_b = st.columns(2)
+                            with col_a:
+                                st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
+                                st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
+                            with col_b:
+                                st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
+                                st.write(f"**Portions:** {recipe['portions']}")
+                            
+                            st.write("**Ingredients:**")
+                            for ing in recipe.get('ingredients', []):
+                                st.write(f"  • {ing}")
+                
+                with col2:
+                    st.success("🛒 Grocery List")
+                    grocery_list = dinner_plan.get('grocery_list', [])
+                    if grocery_list:
+                        # Create downloadable text
+                        grocery_text = "GROCERY LIST\n" + "="*30 + "\n\n"
+                        for item in grocery_list:
+                            if item['count'] > 1:
+                                grocery_text += f"☐ {item['ingredient']} (×{item['count']})\n"
+                                st.write(f"☐ {item['ingredient']} (×{item['count']})")
+                            else:
+                                grocery_text += f"☐ {item['ingredient']}\n"
+                                st.write(f"☐ {item['ingredient']}")
+                        
+                        st.download_button(
+                            label="📥 Download List",
+                            data=grocery_text,
+                            file_name="grocery_list.txt",
+                            mime="text/plain",
+                            use_container_width=True
+                        )
+                    else:
+                        st.write("No ingredients found")
+            else:
+                st.error(f"❌ Error: {result.get('error')}")
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.markdown("### About")
+st.sidebar.info(
+    "Dinner Menu Planner helps you plan meals based on weather conditions. "
+    "Add your recipes and let the app suggest what to cook!"
+)
