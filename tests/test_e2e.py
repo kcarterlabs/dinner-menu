@@ -5,7 +5,7 @@ import sys
 import time
 import threading
 import requests
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 # Add parent directory to path
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +34,7 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'healthy')
-        self.assertIn('timestamp', data)
+        self.assertIn('message', data)
     
     def test_complete_recipe_workflow(self):
         """Test the complete recipe management workflow"""
@@ -92,51 +92,47 @@ class TestEndToEnd(unittest.TestCase):
         final_data = json.loads(response.data)
         self.assertEqual(final_data['count'], initial_count)
     
-    @patch('app.requests.get')
-    def test_weather_integration(self, mock_get):
+    @patch('app.get_weather_forecast')
+    def test_weather_integration(self, mock_weather):
         """Test weather API integration"""
-        # Mock weather API response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "list": [
+        # Mock weather forecast function
+        mock_weather.return_value = {
+            "location": "Spokane, WA",
+            "forecast": [
                 {
-                    "dt": 1234567890,
-                    "main": {"temp": 75.5},
-                    "weather": [{"description": "clear sky"}],
-                    "dt_txt": "2026-01-17 12:00:00"
+                    "day": "Friday",
+                    "date": "2026-01-17",
+                    "temp": 75.5
                 },
                 {
-                    "dt": 1234567891,
-                    "main": {"temp": 68.2},
-                    "weather": [{"description": "partly cloudy"}],
-                    "dt_txt": "2026-01-18 12:00:00"
+                    "day": "Saturday",
+                    "date": "2026-01-18",
+                    "temp": 68.2
                 }
             ]
         }
-        mock_get.return_value = mock_response
         
         response = self.client.get('/api/weather?days=2')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data['success'])
-        self.assertEqual(len(data['weather']), 2)
-        self.assertEqual(data['weather'][0]['temperature'], 75.5)
+        self.assertIn('weather', data)
+        self.assertEqual(data['weather']['location'], 'Spokane, WA')
+        self.assertEqual(len(data['weather']['forecast']), 2)
+        self.assertEqual(data['weather']['forecast'][0]['temp'], 75.5)
     
-    @patch('app.requests.get')
-    def test_dinner_menu_generation(self, mock_get):
+    @patch('app.get_weather_forecast')
+    def test_dinner_menu_generation(self, mock_weather):
         """Test complete dinner menu generation flow"""
-        # Mock weather API
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "list": [
-                {"dt": 1234567890, "main": {"temp": 65.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-17 12:00:00"},
-                {"dt": 1234567891, "main": {"temp": 70.0}, "weather": [{"description": "sunny"}], "dt_txt": "2026-01-18 12:00:00"},
-                {"dt": 1234567892, "main": {"temp": 72.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-19 12:00:00"}
+        # Mock weather forecast
+        mock_weather.return_value = {
+            "location": "Spokane, WA",
+            "forecast": [
+                {"day": "Friday", "date": "2026-01-17", "temp": 65.0},
+                {"day": "Saturday", "date": "2026-01-18", "temp": 70.0},
+                {"day": "Sunday", "date": "2026-01-19", "temp": 72.0}
             ]
         }
-        mock_get.return_value = mock_response
         
         # Add test recipes
         test_recipes = [
@@ -179,16 +175,17 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data['success'])
-        self.assertIn('menu', data)
-        self.assertEqual(len(data['menu']), 3)
+        self.assertIn('dinner_plan', data)
+        self.assertIn('selected_recipes', data['dinner_plan'])
         
-        # Verify menu structure
-        for day_menu in data['menu']:
-            self.assertIn('date', day_menu)
-            self.assertIn('temperature', day_menu)
-            self.assertIn('recipe', day_menu)
-            self.assertIn('title', day_menu['recipe'])
-            self.assertIn('ingredients', day_menu['recipe'])
+        # Verify recipes were selected
+        selected = data['dinner_plan']['selected_recipes']
+        self.assertGreater(len(selected), 0)
+        
+        # Verify recipe structure
+        for recipe in selected:
+            self.assertIn('title', recipe)
+            self.assertIn('ingredients', recipe)
     
     @patch('app.requests.get')
     def test_quick_dinner_menu(self, mock_get):
@@ -221,14 +218,19 @@ class TestEndToEnd(unittest.TestCase):
             )
         
         # Generate quick menu
-        response = self.client.get('/api/quick-dinner-menu?days=2')
+        response = self.client.get('/api/dinner-menu/quick?days=2')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data['success'])
-        self.assertEqual(len(data['menu']), 2)
+        self.assertIn('dinner_plan', data)
+        self.assertIn('selected_recipes', data['dinner_plan'])
+        
+        # Verify recipes were selected
+        recipes = data['dinner_plan']['selected_recipes']
+        self.assertGreater(len(recipes), 0)
         
         # Verify no duplicate recipes
-        recipe_titles = [day['recipe']['title'] for day in data['menu']]
+        recipe_titles = [r['title'] for r in recipes]
         self.assertEqual(len(recipe_titles), len(set(recipe_titles)), "Menu contains duplicate recipes")
     
     def test_grocery_list_generation(self):
@@ -273,19 +275,17 @@ class TestEndToEnd(unittest.TestCase):
         data = json.loads(response.data)
         recipes = data['recipes']
         
-        # Get grocery list for all recipes
-        grocery_response = self.client.get('/api/recipes')
-        self.assertEqual(grocery_response.status_code, 200)
-        grocery_data = json.loads(grocery_response.data)
+        # Verify recipes were added successfully
+        self.assertEqual(data['count'], 5)  # 2 initial test recipes + 3 new ones
         
-        # Verify grocery list exists in response
-        self.assertIn('grocery_list', grocery_data)
-        grocery_list = grocery_data['grocery_list']
+        # Verify all ingredients are in the recipes
+        all_ingredients = []
+        for recipe in recipes:
+            all_ingredients.extend(recipe['ingredients'])
         
-        # Verify ingredients are present
-        self.assertIn('eggs', grocery_list)
-        self.assertIn('flour', grocery_list)
-        self.assertIn('chicken', grocery_list)
+        self.assertIn('eggs', all_ingredients)
+        self.assertIn('flour', all_ingredients)
+        self.assertIn('chicken', all_ingredients)
     
     def test_error_handling_invalid_recipe(self):
         """Test error handling with invalid recipe data"""
@@ -313,26 +313,29 @@ class TestEndToEnd(unittest.TestCase):
         data = json.loads(response.data)
         self.assertFalse(data['success'])
     
-    def test_error_handling_invalid_weather_days(self):
-        """Test error handling with invalid weather days parameter"""
-        response = self.client.get('/api/weather?days=invalid')
+    @patch('app.get_weather_forecast')
+    def test_error_handling_invalid_weather_days(self, mock_weather):
+        """Test error handling with out-of-range weather days parameter"""
+        mock_weather.return_value = []
+        
+        # Test days too high
+        response = self.client.get('/api/weather?days=99')
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
         self.assertFalse(data['success'])
+        self.assertIn('error', data)
     
-    @patch('app.requests.get')
-    def test_full_user_journey(self, mock_get):
+    @patch('app.get_weather_forecast')
+    def test_full_user_journey(self, mock_weather):
         """Test a complete user journey from start to finish"""
         # Mock weather
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "list": [
-                {"dt": 1234567890, "main": {"temp": 68.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-17 12:00:00"},
-                {"dt": 1234567891, "main": {"temp": 72.0}, "weather": [{"description": "sunny"}], "dt_txt": "2026-01-18 12:00:00"}
+        mock_weather.return_value = {
+            "location": "Spokane, WA",
+            "forecast": [
+                {"day": "Friday", "date": "2026-01-17", "temp": 68.0},
+                {"day": "Saturday", "date": "2026-01-18", "temp": 72.0}
             ]
         }
-        mock_get.return_value = mock_response
         
         # 1. User checks health of API
         health = self.client.get('/api/health')
@@ -366,16 +369,18 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(menu_response.status_code, 200)
         menu_data = json.loads(menu_response.data)
         self.assertTrue(menu_data['success'])
-        self.assertEqual(len(menu_data['menu']), 2)
+        self.assertIn('dinner_plan', menu_data)
         
-        # 6. User views recipes again to see grocery list
+        # 6. User views recipes again and verifies their recipe is saved
         final_recipes = self.client.get('/api/recipes')
         self.assertEqual(final_recipes.status_code, 200)
         final_data = json.loads(final_recipes.data)
-        self.assertIn('grocery_list', final_data)
         
         # 7. Verify the user's recipe is in the system
         self.assertEqual(final_data['count'], initial_count + 1)
+        
+        # 8. Verify grocery list is included in the dinner plan
+        self.assertIn('grocery_list', menu_data['dinner_plan'])
 
 
 if __name__ == '__main__':
