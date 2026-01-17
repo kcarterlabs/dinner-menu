@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   traefik:
     image: traefik:v2.11
@@ -28,8 +26,8 @@ services:
       - "443:443"
       - "8080:8080"  # Traefik dashboard (secure it in production)
     environment:
-      - CF_API_EMAIL=${CF_API_EMAIL}
-      - CF_API_KEY=${CF_API_KEY}
+      # Traefik expects these specific variable names for Cloudflare provider
+      - CLOUDFLARE_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
