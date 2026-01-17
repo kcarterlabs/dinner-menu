@@ -1,0 +1,10 @@
+# Gitleaks ignore file
+# Add fingerprints of false positives here
+
+# Example AWS Account IDs in documentation/code are not secrets
+856817629634
+
+# Example tokens in documentation
+your-cloudflare-api-token-here
+your-rapid-api-key
+your-email@example.com

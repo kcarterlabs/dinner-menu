@@ -11,8 +11,28 @@ on:
       - main
 
 jobs:
+  secret-scan:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+      
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Secret scan results
+        if: success()
+        run: echo "✅ No secrets detected in codebase"
+
   test:
     name: Run Tests
+    needs: secret-scan
     runs-on: ubuntu-latest
     
     steps:
@@ -49,7 +69,7 @@ jobs:
 
   build:
     name: Build and Push Docker Images
-    needs: test
+    needs: [secret-scan, test]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
