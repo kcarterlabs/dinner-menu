@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v2.11
+    container_name: dinner-menu-traefik
+    restart: unless-stopped
+    command:
+      # Traefik configuration
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Redirect HTTP to HTTPS
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # Let's Encrypt configuration
+      - "--certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge=true"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare"
+      - "--certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53"
+      # Uncomment for testing to avoid Let's Encrypt rate limits
+      # - "--certificatesresolvers.cloudflare.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard (secure it in production)
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_API_KEY=${CF_API_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - dinner-menu-network
+    labels:
+      # Dashboard
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.kcarterlabs.tech`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
+      # Optional: Basic auth for dashboard (generate with: htpasswd -nb admin password)
+      # - "traefik.http.routers.dashboard.middlewares=auth"
+      # - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$..."
+
+  api:
+    image: ${ECR_REGISTRY}/dinner-menu-api:latest
+    container_name: dinner-menu-api
+    restart: unless-stopped
+    environment:
+      - RAPID_API_FORECAST_KEY=${RAPID_API_FORECAST_KEY}
+    volumes:
+      - ./recipes.json:/app/recipes.json
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    networks:
+      - dinner-menu-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`dinner-menu.kcarterlabs.tech`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=cloudflare"
+      - "traefik.http.services.api.loadbalancer.server.port=5000"
+
+  frontend:
+    image: ${ECR_REGISTRY}/dinner-menu-frontend:latest
+    container_name: dinner-menu-frontend
+    restart: unless-stopped
+    environment:
+      - API_BASE_URL=http://api:5000/api
+    depends_on:
+      - api
+    networks:
+      - dinner-menu-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`dinner-menu.kcarterlabs.tech`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=cloudflare"
+      - "traefik.http.services.frontend.loadbalancer.server.port=8501"
+
+networks:
+  dinner-menu-network:
+    driver: bridge
