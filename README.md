@@ -90,9 +90,62 @@ dinner-menu/
 ├── add-recipe.py           # Original recipe management CLI
 ├── recipes.json            # Recipe database
 ├── requirements.txt        # Python dependencies
+├── requirements-test.txt   # Test dependencies
 ├── start.sh               # Startup script
+├── run_tests.sh           # Test runner script
+├── tests/                 # Test suite
+│   ├── test_app.py        # Flask API unit tests
+│   ├── test_streamlit_app.py  # Streamlit unit tests
+│   ├── test_dinner_menu.py    # Core logic unit tests
+│   ├── test_add_recipe.py     # Recipe management unit tests
+│   └── test_e2e.py        # End-to-end integration tests
 └── README.md              # This file
 ```
+
+## Testing
+
+The project includes comprehensive test coverage with **automatic data isolation** to protect production data.
+
+### Data Protection
+
+**Production data is automatically protected during tests:**
+- `recipes.json` is never modified by tests
+- `backups/` directory is never touched by tests
+- Tests use isolated test data in `tests/test_data/` (auto-created and cleaned up)
+
+See [DATA_PROTECTION.md](DATA_PROTECTION.md) for complete details.
+
+### Running Tests
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Run specific test file
+python -m pytest tests/test_e2e.py -v
+
+# Run with coverage report
+python -m pytest tests/ -v --cov=. --cov-report=html
+```
+
+### Test Types
+
+- **Unit Tests** (`test_app.py`, `test_streamlit_app.py`, `test_dinner_menu.py`, `test_add_recipe.py`)
+  - Test individual components in isolation
+  - Use mocks to avoid external dependencies
+  - Fast execution
+
+- **End-to-End Tests** (`test_e2e.py`)
+  - Test complete user workflows
+  - Test API integration between components
+  - Verify full request/response cycles
+  - Examples:
+    - Complete recipe CRUD workflow
+    - Weather integration with menu generation
+    - Grocery list generation
+    - Error handling scenarios
+
+All tests run automatically in CI/CD pipeline before Docker image builds.
 
 ## Tips
 

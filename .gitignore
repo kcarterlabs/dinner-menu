@@ -26,6 +26,10 @@ coverage.xml
 .pytest_cache/
 .tox/
 
+# Test data (never commit test artifacts)
+tests/test_data/
+tests/__pycache__/
+
 # Distribution / packaging
 *.egg-info/
 dist/

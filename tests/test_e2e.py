@@ -1,0 +1,382 @@
+import unittest
+import json
+import os
+import sys
+import time
+import threading
+import requests
+from unittest.mock import patch
+
+# Add parent directory to path
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
+
+import app
+
+
+class TestEndToEnd(unittest.TestCase):
+    """End-to-end tests for the complete application flow"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Set up test environment once for all tests"""
+        # Use in-memory test client instead of running real server
+        app.app.config['TESTING'] = True
+        cls.client = app.app.test_client()
+        cls.base_url = 'http://localhost'  # Not actually used, but kept for reference
+    
+    # Note: conftest.py automatically isolates recipes.json and backups
+    # No manual file handling needed - pytest fixtures handle it
+    
+    def test_health_check(self):
+        """Test that the API health endpoint responds"""
+        response = self.client.get('/api/health')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data['status'], 'healthy')
+        self.assertIn('timestamp', data)
+    
+    def test_complete_recipe_workflow(self):
+        """Test the complete recipe management workflow"""
+        # Step 1: Get initial recipes
+        response = self.client.get('/api/recipes')
+        self.assertEqual(response.status_code, 200)
+        initial_data = json.loads(response.data)
+        initial_count = initial_data['count']
+        
+        # Step 2: Add a new recipe
+        new_recipe = {
+            "title": "E2E Test Pasta",
+            "ingredients": ["pasta", "tomato sauce", "garlic", "olive oil"],
+            "oven": False,
+            "stove": True,
+            "portions": "4",
+            "url": "https://example.com/pasta"
+        }
+        
+        response = self.client.post(
+            '/api/recipes',
+            data=json.dumps(new_recipe),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        add_data = json.loads(response.data)
+        self.assertTrue(add_data['success'])
+        self.assertIn('Recipe added successfully', add_data['message'])
+        
+        # Step 3: Verify recipe was added
+        response = self.client.get('/api/recipes')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data['count'], initial_count + 1)
+        
+        # Find our recipe
+        found = False
+        for recipe in data['recipes']:
+            if recipe['title'] == 'E2E Test Pasta':
+                found = True
+                self.assertEqual(recipe['ingredients'], new_recipe['ingredients'])
+                self.assertEqual(recipe['oven'], False)
+                self.assertEqual(recipe['stove'], True)
+        self.assertTrue(found, "Added recipe not found in recipe list")
+        
+        # Step 4: Delete the recipe
+        response = self.client.delete(f'/api/recipes/{data["count"] - 1}')
+        self.assertEqual(response.status_code, 200)
+        delete_data = json.loads(response.data)
+        self.assertTrue(delete_data['success'])
+        
+        # Step 5: Verify recipe was deleted
+        response = self.client.get('/api/recipes')
+        self.assertEqual(response.status_code, 200)
+        final_data = json.loads(response.data)
+        self.assertEqual(final_data['count'], initial_count)
+    
+    @patch('app.requests.get')
+    def test_weather_integration(self, mock_get):
+        """Test weather API integration"""
+        # Mock weather API response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "list": [
+                {
+                    "dt": 1234567890,
+                    "main": {"temp": 75.5},
+                    "weather": [{"description": "clear sky"}],
+                    "dt_txt": "2026-01-17 12:00:00"
+                },
+                {
+                    "dt": 1234567891,
+                    "main": {"temp": 68.2},
+                    "weather": [{"description": "partly cloudy"}],
+                    "dt_txt": "2026-01-18 12:00:00"
+                }
+            ]
+        }
+        mock_get.return_value = mock_response
+        
+        response = self.client.get('/api/weather?days=2')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data['success'])
+        self.assertEqual(len(data['weather']), 2)
+        self.assertEqual(data['weather'][0]['temperature'], 75.5)
+    
+    @patch('app.requests.get')
+    def test_dinner_menu_generation(self, mock_get):
+        """Test complete dinner menu generation flow"""
+        # Mock weather API
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "list": [
+                {"dt": 1234567890, "main": {"temp": 65.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-17 12:00:00"},
+                {"dt": 1234567891, "main": {"temp": 70.0}, "weather": [{"description": "sunny"}], "dt_txt": "2026-01-18 12:00:00"},
+                {"dt": 1234567892, "main": {"temp": 72.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-19 12:00:00"}
+            ]
+        }
+        mock_get.return_value = mock_response
+        
+        # Add test recipes
+        test_recipes = [
+            {
+                "title": "Grilled Chicken",
+                "ingredients": ["chicken", "spices"],
+                "oven": True,
+                "stove": False,
+                "portions": "4",
+                "url": "https://example.com/chicken"
+            },
+            {
+                "title": "Pasta Salad",
+                "ingredients": ["pasta", "vegetables"],
+                "oven": False,
+                "stove": True,
+                "portions": "4",
+                "url": "https://example.com/salad"
+            },
+            {
+                "title": "Stir Fry",
+                "ingredients": ["rice", "vegetables", "soy sauce"],
+                "oven": False,
+                "stove": True,
+                "portions": "3",
+                "url": "https://example.com/stirfry"
+            }
+        ]
+        
+        # Add recipes via API
+        for recipe in test_recipes:
+            self.client.post(
+                '/api/recipes',
+                data=json.dumps(recipe),
+                content_type='application/json'
+            )
+        
+        # Generate dinner menu
+        response = self.client.get('/api/dinner-menu?days=3')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data['success'])
+        self.assertIn('menu', data)
+        self.assertEqual(len(data['menu']), 3)
+        
+        # Verify menu structure
+        for day_menu in data['menu']:
+            self.assertIn('date', day_menu)
+            self.assertIn('temperature', day_menu)
+            self.assertIn('recipe', day_menu)
+            self.assertIn('title', day_menu['recipe'])
+            self.assertIn('ingredients', day_menu['recipe'])
+    
+    @patch('app.requests.get')
+    def test_quick_dinner_menu(self, mock_get):
+        """Test quick dinner menu (no weather)"""
+        # Add test recipes
+        test_recipes = [
+            {
+                "title": "Quick Pasta",
+                "ingredients": ["pasta", "butter", "cheese"],
+                "oven": False,
+                "stove": True,
+                "portions": "2",
+                "url": "https://example.com/quick"
+            },
+            {
+                "title": "Quick Salad",
+                "ingredients": ["lettuce", "tomatoes", "dressing"],
+                "oven": False,
+                "stove": False,
+                "portions": "2",
+                "url": "https://example.com/salad"
+            }
+        ]
+        
+        for recipe in test_recipes:
+            self.client.post(
+                '/api/recipes',
+                data=json.dumps(recipe),
+                content_type='application/json'
+            )
+        
+        # Generate quick menu
+        response = self.client.get('/api/quick-dinner-menu?days=2')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data['success'])
+        self.assertEqual(len(data['menu']), 2)
+        
+        # Verify no duplicate recipes
+        recipe_titles = [day['recipe']['title'] for day in data['menu']]
+        self.assertEqual(len(recipe_titles), len(set(recipe_titles)), "Menu contains duplicate recipes")
+    
+    def test_grocery_list_generation(self):
+        """Test grocery list generation from multiple recipes"""
+        # Add test recipes with overlapping ingredients
+        test_recipes = [
+            {
+                "title": "Recipe 1",
+                "ingredients": ["eggs", "milk", "flour", "sugar"],
+                "oven": True,
+                "stove": False,
+                "portions": "4",
+                "url": "https://example.com/recipe1"
+            },
+            {
+                "title": "Recipe 2",
+                "ingredients": ["eggs", "butter", "flour", "vanilla"],
+                "oven": True,
+                "stove": False,
+                "portions": "6",
+                "url": "https://example.com/recipe2"
+            },
+            {
+                "title": "Recipe 3",
+                "ingredients": ["chicken", "rice", "vegetables"],
+                "oven": False,
+                "stove": True,
+                "portions": "4",
+                "url": "https://example.com/recipe3"
+            }
+        ]
+        
+        for recipe in test_recipes:
+            self.client.post(
+                '/api/recipes',
+                data=json.dumps(recipe),
+                content_type='application/json'
+            )
+        
+        # Get recipes to verify they were added
+        response = self.client.get('/api/recipes')
+        data = json.loads(response.data)
+        recipes = data['recipes']
+        
+        # Get grocery list for all recipes
+        grocery_response = self.client.get('/api/recipes')
+        self.assertEqual(grocery_response.status_code, 200)
+        grocery_data = json.loads(grocery_response.data)
+        
+        # Verify grocery list exists in response
+        self.assertIn('grocery_list', grocery_data)
+        grocery_list = grocery_data['grocery_list']
+        
+        # Verify ingredients are present
+        self.assertIn('eggs', grocery_list)
+        self.assertIn('flour', grocery_list)
+        self.assertIn('chicken', grocery_list)
+    
+    def test_error_handling_invalid_recipe(self):
+        """Test error handling with invalid recipe data"""
+        # Missing required fields
+        invalid_recipe = {
+            "title": "Invalid Recipe"
+            # Missing ingredients, oven, stove, portions
+        }
+        
+        response = self.client.post(
+            '/api/recipes',
+            data=json.dumps(invalid_recipe),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        self.assertFalse(data['success'])
+        self.assertIn('error', data)
+    
+    def test_error_handling_invalid_recipe_index(self):
+        """Test error handling with invalid recipe index"""
+        # Try to delete non-existent recipe
+        response = self.client.delete('/api/recipes/99999')
+        self.assertEqual(response.status_code, 404)
+        data = json.loads(response.data)
+        self.assertFalse(data['success'])
+    
+    def test_error_handling_invalid_weather_days(self):
+        """Test error handling with invalid weather days parameter"""
+        response = self.client.get('/api/weather?days=invalid')
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        self.assertFalse(data['success'])
+    
+    @patch('app.requests.get')
+    def test_full_user_journey(self, mock_get):
+        """Test a complete user journey from start to finish"""
+        # Mock weather
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "list": [
+                {"dt": 1234567890, "main": {"temp": 68.0}, "weather": [{"description": "clear"}], "dt_txt": "2026-01-17 12:00:00"},
+                {"dt": 1234567891, "main": {"temp": 72.0}, "weather": [{"description": "sunny"}], "dt_txt": "2026-01-18 12:00:00"}
+            ]
+        }
+        mock_get.return_value = mock_response
+        
+        # 1. User checks health of API
+        health = self.client.get('/api/health')
+        self.assertEqual(health.status_code, 200)
+        
+        # 2. User views existing recipes
+        recipes = self.client.get('/api/recipes')
+        self.assertEqual(recipes.status_code, 200)
+        initial_count = json.loads(recipes.data)['count']
+        
+        # 3. User adds their favorite recipe
+        favorite_recipe = {
+            "title": "Mom's Lasagna",
+            "ingredients": ["lasagna noodles", "ground beef", "ricotta cheese", "mozzarella", "marinara sauce"],
+            "oven": True,
+            "stove": True,
+            "portions": "8",
+            "url": "https://example.com/lasagna"
+        }
+        add_response = self.client.post('/api/recipes', data=json.dumps(favorite_recipe), content_type='application/json')
+        self.assertEqual(add_response.status_code, 201)
+        
+        # 4. User checks the weather
+        weather_response = self.client.get('/api/weather?days=2')
+        self.assertEqual(weather_response.status_code, 200)
+        weather_data = json.loads(weather_response.data)
+        self.assertTrue(weather_data['success'])
+        
+        # 5. User generates dinner menu based on weather
+        menu_response = self.client.get('/api/dinner-menu?days=2')
+        self.assertEqual(menu_response.status_code, 200)
+        menu_data = json.loads(menu_response.data)
+        self.assertTrue(menu_data['success'])
+        self.assertEqual(len(menu_data['menu']), 2)
+        
+        # 6. User views recipes again to see grocery list
+        final_recipes = self.client.get('/api/recipes')
+        self.assertEqual(final_recipes.status_code, 200)
+        final_data = json.loads(final_recipes.data)
+        self.assertIn('grocery_list', final_data)
+        
+        # 7. Verify the user's recipe is in the system
+        self.assertEqual(final_data['count'], initial_count + 1)
+
+
+if __name__ == '__main__':
+    unittest.main()
