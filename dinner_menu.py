@@ -2,6 +2,7 @@ import requests
 import time
 import os 
 import json
+import random
 from datetime import datetime
 
 api_key = os.getenv('RAPID_API_FORECAST_KEY')
@@ -55,7 +56,7 @@ def dinner_logic(weather, date_range):
     selected_recipes = []
     total_portions = 0
     available_recipes = [r for r in data if not (too_hot and r.get("oven", False))]
-    available_recipes.sort(key=lambda r: int(r.get("portions", "1")), reverse=True)
+    random.shuffle(available_recipes)
 
     for recipe in available_recipes:
         portions = int(recipe.get("portions", "1"))
