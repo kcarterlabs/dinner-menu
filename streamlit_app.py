@@ -1,9 +1,10 @@
 import streamlit as st
 import requests
+import os
 from datetime import datetime
 
 # Configuration
-API_BASE_URL = "http://localhost:5000/api"
+API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:5000/api')
 
 st.set_page_config(
     page_title="Dinner Menu Planner",

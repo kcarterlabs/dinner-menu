@@ -1,0 +1,51 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+bin/
+lib/
+lib64
+pyvenv.cfg
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups (optionally exclude if you don't want old backups in the image)
+# backups/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+*.md
+
+# Test files
+tests/
+*test*.py
+requirements-test.txt
+
+# Other
+bookmarks.html
+recipes\ copy.json
+soup.py
+recipe-scrape.py

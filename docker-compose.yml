@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: dinner-menu-api
+    ports:
+      - "5000:5000"
+    environment:
+      - RAPID_API_FORECAST_KEY=${RAPID_API_FORECAST_KEY}
+    volumes:
+      - ./recipes.json:/app/recipes.json
+      - ./backups:/app/backups
+    command: python app.py
+    networks:
+      - dinner-menu-network
+    restart: unless-stopped
+
+  frontend:
+    build: .
+    container_name: dinner-menu-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://api:5000/api
+    command: python -m streamlit run streamlit_app.py --server.address=0.0.0.0
+    depends_on:
+      - api
+    networks:
+      - dinner-menu-network
+    restart: unless-stopped
+
+networks:
+  dinner-menu-network:
+    driver: bridge
