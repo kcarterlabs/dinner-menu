@@ -17,6 +17,15 @@ __pycache__/
 logs/
 *.log
 
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.tox/
+
 # Distribution / packaging
 *.egg-info/
 dist/

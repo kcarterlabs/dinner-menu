@@ -19,17 +19,26 @@ BACKUP_DIR = "backups"
 
 # Logging configuration
 if not os.path.exists('logs'):
-    os.makedirs('logs')
+    try:
+        os.makedirs('logs')
+    except (OSError, PermissionError):
+        pass  # Skip log directory creation if no permissions
 
-file_handler = RotatingFileHandler('logs/api.log', maxBytes=10240000, backupCount=10)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
-file_handler.setLevel(logging.INFO)
-app.logger.addHandler(file_handler)
-
-app.logger.setLevel(logging.INFO)
-app.logger.info('Dinner Menu API startup')
+try:
+    file_handler = RotatingFileHandler('logs/api.log', maxBytes=10240000, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('Dinner Menu API startup')
+except (OSError, PermissionError):
+    # Fallback to console logging only if file logging fails
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    app.logger.addHandler(console_handler)
+    app.logger.setLevel(logging.INFO)
 
 # Request logging middleware
 @app.before_request

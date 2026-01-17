@@ -7,15 +7,23 @@ from datetime import datetime
 
 # Logging configuration
 if not os.path.exists('logs'):
-    os.makedirs('logs')
+    try:
+        os.makedirs('logs')
+    except (OSError, PermissionError):
+        pass  # Will fall back to console logging only
+
+# Try to set up file logging, fall back to console only if there are permission issues
+handlers = [logging.StreamHandler()]
+try:
+    file_handler = RotatingFileHandler('logs/streamlit.log', maxBytes=10240000, backupCount=10)
+    handlers.insert(0, file_handler)
+except (OSError, PermissionError):
+    pass  # Continue with console logging only
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        RotatingFileHandler('logs/streamlit.log', maxBytes=10240000, backupCount=10),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 logger.info('Streamlit app starting')
