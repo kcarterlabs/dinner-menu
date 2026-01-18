@@ -163,6 +163,98 @@ class TestStreamlitHelpers(unittest.TestCase):
         self.assertTrue(result['success'])
         self.assertIn('dinner_plan', result)
         self.assertIn('grocery_list', result['dinner_plan'])
+    
+    @patch('requests.post')
+    def test_reroll_dinner_menu_success(self, mock_post):
+        """Test successful dinner menu re-roll with cached weather"""
+        import streamlit_app
+        
+        cached_weather = {
+            'location': 'Spokane, WA',
+            'forecast': [
+                {'day': 'Monday', 'date': '2026-01-20', 'temp': 75.0},
+                {'day': 'Tuesday', 'date': '2026-01-21', 'temp': 80.0}
+            ]
+        }
+        
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'success': True,
+            'weather': cached_weather,
+            'dinner_plan': {
+                'selected_recipes': [
+                    {'title': 'Salad', 'ingredients': ['lettuce'], 'portions': '2'}
+                ],
+                'total_portions': 2,
+                'grocery_list': [{'ingredient': 'lettuce', 'count': 1}]
+            }
+        }
+        mock_post.return_value = mock_response
+        
+        result = streamlit_app.reroll_dinner_menu(2, cached_weather)
+        self.assertTrue(result['success'])
+        self.assertIn('dinner_plan', result)
+        self.assertEqual(result['weather'], cached_weather)
+    
+    @patch('requests.post')
+    def test_reroll_single_recipe(self, mock_post):
+        """Test re-rolling a single recipe with keep_indices"""
+        import streamlit_app
+        
+        cached_weather = {'location': 'Spokane, WA', 'forecast': []}
+        
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'success': True,
+            'weather': cached_weather,
+            'dinner_plan': {
+                'selected_recipes': [
+                    {'title': 'Kept Recipe', 'ingredients': ['a'], 'portions': '2'},
+                    {'title': 'New Recipe', 'ingredients': ['b'], 'portions': '2'}
+                ],
+                'total_portions': 4,
+                'grocery_list': []
+            }
+        }
+        mock_post.return_value = mock_response
+        
+        # Re-roll with keep_indices
+        result = streamlit_app.reroll_dinner_menu(2, cached_weather, keep_indices=[0, 2])
+        self.assertTrue(result['success'])
+        # Verify the request was made with exclude_indices
+        call_args = mock_post.call_args
+        self.assertIn('exclude_indices', call_args[1]['json'])
+    
+    @patch('requests.post')
+    def test_reroll_dinner_menu_failure(self, mock_post):
+        """Test dinner menu re-roll failure"""
+        import streamlit_app
+        
+        cached_weather = {'location': 'Spokane, WA', 'forecast': []}
+        
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'success': False,
+            'error': 'Failed to generate menu'
+        }
+        mock_post.return_value = mock_response
+        
+        result = streamlit_app.reroll_dinner_menu(2, cached_weather)
+        self.assertFalse(result['success'])
+        self.assertIn('error', result)
+    
+    @patch('requests.post')
+    def test_reroll_dinner_menu_exception(self, mock_post):
+        """Test dinner menu re-roll with exception"""
+        import streamlit_app
+        
+        mock_post.side_effect = Exception("Network error")
+        cached_weather = {'location': 'Spokane, WA', 'forecast': []}
+        
+        result = streamlit_app.reroll_dinner_menu(2, cached_weather)
+        self.assertFalse(result['success'])
+        self.assertIn('error', result)
 
 if __name__ == '__main__':
     unittest.main()
+

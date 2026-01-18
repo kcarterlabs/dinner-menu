@@ -150,6 +150,82 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertTrue(data['success'])
         self.assertIn('dinner_plan', data)
     
+    @patch('app.select_dinner_recipes')
+    def test_dinner_menu_reroll_with_cached_weather(self, mock_select):
+        """Test re-rolling dinner menu with cached weather data"""
+        cached_weather = {
+            "location": "Spokane, WA",
+            "forecast": [
+                {"day": "Monday", "date": "2026-01-20", "temp": 75.0},
+                {"day": "Tuesday", "date": "2026-01-21", "temp": 80.0}
+            ]
+        }
+        mock_select.return_value = {
+            "selected_recipes": [
+                {"title": "Salad", "ingredients": ["lettuce"], "oven": False, "stove": False, "portions": "2"}
+            ],
+            "total_portions": 2,
+            "days_requested": 2,
+            "too_hot_for_oven": False,
+            "grocery_list": [{"ingredient": "lettuce", "count": 1}]
+        }
+        
+        response = self.client.post(
+            '/api/dinner-menu?days=2',
+            data=json.dumps({"weather": cached_weather}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['weather'], cached_weather)
+        self.assertIn('dinner_plan', data)
+        mock_select.assert_called_once_with(cached_weather, 2, [])
+    
+    @patch('app.select_dinner_recipes')
+    def test_dinner_menu_reroll_single_recipe(self, mock_select):
+        """Test re-rolling a single recipe while keeping others"""
+        cached_weather = {
+            "location": "Spokane, WA",
+            "forecast": [{"day": "Monday", "date": "2026-01-20", "temp": 75.0}]
+        }
+        mock_select.return_value = {
+            "selected_recipes": [
+                {"title": "New Recipe", "ingredients": ["ingredient"], "oven": False, "stove": True, "portions": "2"}
+            ],
+            "total_portions": 2,
+            "days_requested": 2,
+            "too_hot_for_oven": False,
+            "grocery_list": [{"ingredient": "ingredient", "count": 1}]
+        }
+        
+        # Re-roll with exclude_indices to keep certain recipes
+        response = self.client.post(
+            '/api/dinner-menu?days=2',
+            data=json.dumps({
+                "weather": cached_weather,
+                "exclude_indices": [0, 2]  # Keep recipes at index 0 and 2
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(data['success'])
+        # Verify exclude_indices was passed to select function
+        mock_select.assert_called_once_with(cached_weather, 2, [0, 2])
+    
+    def test_dinner_menu_reroll_missing_weather(self):
+        """Test re-rolling without weather data returns error"""
+        response = self.client.post(
+            '/api/dinner-menu?days=2',
+            data=json.dumps({}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        self.assertFalse(data['success'])
+        self.assertIn('Weather data required', data['error'])
+    
     @patch('app.load_recipes')
     def test_quick_dinner_menu(self, mock_load):
         """Test quick dinner menu endpoint"""

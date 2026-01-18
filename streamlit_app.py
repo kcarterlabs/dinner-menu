@@ -122,6 +122,39 @@ def get_dinner_menu(days):
         logger.error(f'Error getting dinner menu: {e}')
         return {"success": False, "error": str(e)}
 
+def reroll_dinner_menu(days, weather_data, keep_indices=None):
+    """Re-roll dinner menu using cached weather data
+    
+    Args:
+        days: Number of days to plan for
+        weather_data: Cached weather data
+        keep_indices: List of recipe indices to keep (others will be re-rolled)
+    """
+    try:
+        if keep_indices:
+            logger.info(f'Re-rolling single recipe for {days} days, keeping indices: {keep_indices}')
+        else:
+            logger.info(f'Re-rolling dinner menu for {days} days with cached weather')
+        
+        payload = {"weather": weather_data}
+        if keep_indices:
+            payload["exclude_indices"] = keep_indices
+        
+        response = requests.post(
+            f"{API_BASE_URL}/dinner-menu",
+            params={"days": days},
+            json=payload
+        )
+        result = response.json()
+        if result.get('success'):
+            logger.info(f'Dinner menu re-rolled successfully')
+        else:
+            logger.warning(f'Failed to re-roll dinner menu: {result.get("error")}')
+        return result
+    except Exception as e:
+        logger.error(f'Error re-rolling dinner menu: {e}')
+        return {"success": False, "error": str(e)}
+
 def get_quick_dinner_menu(days):
     """Get dinner menu without weather"""
     try:
@@ -400,9 +433,27 @@ elif page == "🍲 Dinner Menu":
         
         days = st.slider("Number of days", min_value=1, max_value=14, value=7, key="weather_days")
         
-        if st.button("Generate Weather-Based Menu", use_container_width=True):
+        if st.button("Generate Weather-Based Menu", use_container_width=True, type="primary"):
             with st.spinner("Analyzing weather and selecting recipes..."):
                 result = get_dinner_menu(days)
+            
+            if result.get('success'):
+                st.session_state.weather_menu_result = result
+                st.session_state.weather_menu_days = days
+                # Track original recipe indices from recipes.json for exclusion
+                all_recipes = get_recipes()
+                recipe_indices = []
+                for recipe in result.get('dinner_plan', {}).get('selected_recipes', []):
+                    for orig_idx, orig_recipe in enumerate(all_recipes):
+                        if orig_recipe['title'] == recipe['title']:
+                            recipe_indices.append(orig_idx)
+                            break
+                st.session_state.recipe_indices = recipe_indices
+                st.rerun()
+        
+        # Display results from session state
+        if 'weather_menu_result' in st.session_state:
+            result = st.session_state.weather_menu_result
             
             if result.get('success'):
                 # Display weather
@@ -429,19 +480,44 @@ elif page == "🍲 Dinner Menu":
                 with col1:
                     st.info(f"📊 Total portions: {dinner_plan.get('total_portions')} for {dinner_plan.get('days_requested')} days")
                     
-                    for idx, recipe in enumerate(selected, 1):
-                        with st.expander(f"Day {idx}: {recipe['title']} - {recipe['portions']} portions"):
-                            col_a, col_b = st.columns(2)
-                            with col_a:
-                                st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
-                                st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
-                            with col_b:
-                                st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
-                                st.write(f"**Portions:** {recipe['portions']}")
+                    for idx, recipe in enumerate(selected):
+                        with st.expander(f"Day {idx + 1}: {recipe['title']} - {recipe['portions']} portions"):
+                            col_recipe, col_reroll = st.columns([4, 1])
                             
-                            st.write("**Ingredients:**")
-                            for ing in recipe.get('ingredients', []):
-                                st.write(f"  • {ing}")
+                            with col_recipe:
+                                col_a, col_b = st.columns(2)
+                                with col_a:
+                                    st.write(f"**Oven:** {'✅ Yes' if recipe.get('oven') else '❌ No'}")
+                                    st.write(f"**Stove:** {'✅ Yes' if recipe.get('stove') else '❌ No'}")
+                                with col_b:
+                                    st.write(f"**Date Added:** {recipe.get('date', 'N/A')}")
+                                    st.write(f"**Portions:** {recipe['portions']}")
+                                
+                                st.write("**Ingredients:**")
+                                for ing in recipe.get('ingredients', []):
+                                    st.write(f"  • {ing}")
+                            
+                            with col_reroll:
+                                # Re-roll button for this specific recipe
+                                if st.button("🔄", key=f"reroll_{idx}", help="Re-roll this recipe only"):
+                                    with st.spinner(f"Re-rolling {recipe['title']}..."):
+                                        # Get indices of all OTHER recipes to keep
+                                        keep_indices = [st.session_state.recipe_indices[i] for i in range(len(selected)) if i != idx]
+                                        cached_weather = st.session_state.weather_menu_result.get('weather', {})
+                                        result = reroll_dinner_menu(days, cached_weather, keep_indices)
+                                    
+                                    if result.get('success'):
+                                        st.session_state.weather_menu_result = result
+                                        # Update recipe indices
+                                        all_recipes = get_recipes()
+                                        recipe_indices = []
+                                        for r in result.get('dinner_plan', {}).get('selected_recipes', []):
+                                            for orig_idx, orig_recipe in enumerate(all_recipes):
+                                                if orig_recipe['title'] == r['title']:
+                                                    recipe_indices.append(orig_idx)
+                                                    break
+                                        st.session_state.recipe_indices = recipe_indices
+                                        st.rerun()
                 
                 with col2:
                     st.success("🛒 Grocery List")

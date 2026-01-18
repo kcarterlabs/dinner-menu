@@ -130,26 +130,48 @@ def generate_grocery_list(recipes):
     
     return grocery_list
 
-def select_dinner_recipes(weather_data, days):
-    """Select recipes based on weather and days needed."""
+def select_dinner_recipes(weather_data, days, exclude_indices=None):
+    """Select recipes based on weather and days needed.
+    
+    Args:
+        weather_data: Weather forecast data
+        days: Number of days to plan for
+        exclude_indices: List of recipe indices to keep (not re-roll)
+    """
     temps = [day['temp'] for day in weather_data['forecast']]
     too_hot = any(temp > 90 for temp in temps)
     
     recipes = load_recipes()
     
-    available_recipes = [r for r in recipes if not (too_hot and r.get("oven", False))]
-    random.shuffle(available_recipes)
-    
+    # Start with excluded recipes if provided
     selected_recipes = []
+    kept_recipes = []
     total_portions = 0
     
+    if exclude_indices:
+        # Keep recipes at specified indices
+        for idx in exclude_indices:
+            if 0 <= idx < len(recipes):
+                recipe = recipes[idx]
+                kept_recipes.append(recipe)
+                selected_recipes.append(recipe)
+                total_portions += int(recipe.get("portions", "1"))
+    
+    # Filter available recipes (exclude hot days + already selected)
+    available_recipes = [
+        r for r in recipes 
+        if not (too_hot and r.get("oven", False)) 
+        and r not in kept_recipes
+    ]
+    random.shuffle(available_recipes)
+    
+    # Add more recipes until we have enough portions
     for recipe in available_recipes:
+        if total_portions >= days:
+            break
         portions = int(recipe.get("portions", "1"))
         selected_recipes.append(recipe)
         total_portions += portions
-        
-        if total_portions >= days:
-            break
     
     grocery_list = generate_grocery_list(selected_recipes)
     
@@ -287,12 +309,16 @@ def get_weather():
             "error": str(e)
         }), 500
 
-@app.route('/api/dinner-menu', methods=['GET'])
+@app.route('/api/dinner-menu', methods=['GET', 'POST'])
 def get_dinner_menu():
-    """Get dinner menu suggestions based on weather and days."""
+    """Get dinner menu suggestions based on weather and days.
+    
+    GET: Fetch weather and generate menu
+    POST: Use provided weather data to generate menu (for re-rolling)
+          Can accept 'exclude_indices' to keep certain recipes and only re-roll one
+    """
     try:
         days = request.args.get('days', default=7, type=int)
-        app.logger.info(f'Generating dinner menu for {days} days with weather')
         
         if days < 1 or days > 14:
             app.logger.warning(f'Invalid days requested: {days}')
@@ -301,11 +327,31 @@ def get_dinner_menu():
                 "error": "Days must be between 1 and 14"
             }), 400
         
-        # Get weather forecast
-        weather_data = get_weather_forecast(days)
+        # Check if weather data is provided in POST request (re-roll)
+        if request.method == 'POST':
+            data = request.get_json()
+            weather_data = data.get('weather')
+            exclude_indices = data.get('exclude_indices', [])  # Indices of recipes to keep
+            
+            if not weather_data:
+                app.logger.warning('POST request missing weather data')
+                return jsonify({
+                    "success": False,
+                    "error": "Weather data required for re-roll"
+                }), 400
+            
+            if exclude_indices:
+                app.logger.info(f'Re-rolling dinner menu for {days} days, keeping recipes at indices: {exclude_indices}')
+            else:
+                app.logger.info(f'Re-rolling dinner menu for {days} days with cached weather')
+        else:
+            # Get fresh weather forecast for GET request
+            app.logger.info(f'Generating dinner menu for {days} days with weather')
+            weather_data = get_weather_forecast(days)
+            exclude_indices = []
         
         # Select recipes
-        dinner_plan = select_dinner_recipes(weather_data, days)
+        dinner_plan = select_dinner_recipes(weather_data, days, exclude_indices)
         app.logger.info(f'Selected {len(dinner_plan["selected_recipes"])} recipes for dinner menu')
         
         return jsonify({
