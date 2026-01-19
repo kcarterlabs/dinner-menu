@@ -180,7 +180,8 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertTrue(data['success'])
         self.assertEqual(data['weather'], cached_weather)
         self.assertIn('dinner_plan', data)
-        mock_select.assert_called_once_with(cached_weather, 2, [])
+        # When no reroll_index is provided, it should pass None and []
+        mock_select.assert_called_once_with(cached_weather, 2, None, [])
     
     @patch('app.select_dinner_recipes')
     def test_dinner_menu_reroll_single_recipe(self, mock_select):
@@ -189,30 +190,38 @@ class TestFlaskAPI(unittest.TestCase):
             "location": "Spokane, WA",
             "forecast": [{"day": "Monday", "date": "2026-01-20", "temp": 75.0}]
         }
+        current_menu = [
+            {"title": "Recipe 1", "ingredients": ["a"], "oven": False, "stove": True, "portions": "2"},
+            {"title": "Recipe 2", "ingredients": ["b"], "oven": False, "stove": True, "portions": "2"},
+            {"title": "Recipe 3", "ingredients": ["c"], "oven": False, "stove": True, "portions": "2"}
+        ]
         mock_select.return_value = {
             "selected_recipes": [
-                {"title": "New Recipe", "ingredients": ["ingredient"], "oven": False, "stove": True, "portions": "2"}
+                {"title": "Recipe 1", "ingredients": ["a"], "oven": False, "stove": True, "portions": "2"},
+                {"title": "New Recipe", "ingredients": ["new"], "oven": False, "stove": True, "portions": "2"},
+                {"title": "Recipe 3", "ingredients": ["c"], "oven": False, "stove": True, "portions": "2"}
             ],
-            "total_portions": 2,
+            "total_portions": 6,
             "days_requested": 2,
             "too_hot_for_oven": False,
-            "grocery_list": [{"ingredient": "ingredient", "count": 1}]
+            "grocery_list": [{"ingredient": "a", "count": 1}, {"ingredient": "new", "count": 1}, {"ingredient": "c", "count": 1}]
         }
         
-        # Re-roll with exclude_indices to keep certain recipes
+        # Re-roll with reroll_index to replace recipe at index 1
         response = self.client.post(
             '/api/dinner-menu?days=2',
             data=json.dumps({
                 "weather": cached_weather,
-                "exclude_indices": [0, 2]  # Keep recipes at index 0 and 2
+                "reroll_index": 1,
+                "current_menu": current_menu
             }),
             content_type='application/json'
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertTrue(data['success'])
-        # Verify exclude_indices was passed to select function
-        mock_select.assert_called_once_with(cached_weather, 2, [0, 2])
+        # Verify reroll_index and current_menu was passed to select function
+        mock_select.assert_called_once_with(cached_weather, 2, 1, current_menu)
     
     def test_dinner_menu_reroll_missing_weather(self):
         """Test re-rolling without weather data returns error"""
