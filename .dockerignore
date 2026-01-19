@@ -34,7 +34,13 @@ Thumbs.db
 # Docker
 Dockerfile
 docker-compose.yml
+docker-compose.prod.yml
 .dockerignore
+
+# Deployment scripts
+deploy-traefik.sh
+deploy.sh
+rebuild.sh
 
 # Documentation
 *.md

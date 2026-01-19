@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build: .
@@ -17,14 +15,31 @@ services:
       - dinner-menu-network
     restart: unless-stopped
 
-  frontend:
-    build: .
-    container_name: dinner-menu-frontend
+  # DEPRECATED: Streamlit frontend (replaced by Vue.js)
+  # frontend:
+  #   build: .
+  #   container_name: dinner-menu-frontend
+  #   ports:
+  #     - "8501:8501"
+  #   environment:
+  #     - API_BASE_URL=http://api:5000/api
+  #   command: python -m streamlit run streamlit_app.py --server.address=0.0.0.0
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - dinner-menu-network
+  #   restart: unless-stopped
+
+  vue-frontend:
+    build:
+      context: ./vue-frontend
+      dockerfile: Dockerfile.dev
+    container_name: dinner-menu-vue
     ports:
-      - "8501:8501"
-    environment:
-      - API_BASE_URL=http://api:5000/api
-    command: python -m streamlit run streamlit_app.py --server.address=0.0.0.0
+      - "5173:5173"
+    volumes:
+      - ./vue-frontend:/app
+      - /app/node_modules
     depends_on:
       - api
     networks:

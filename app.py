@@ -130,48 +130,56 @@ def generate_grocery_list(recipes):
     
     return grocery_list
 
-def select_dinner_recipes(weather_data, days, exclude_indices=None):
+def select_dinner_recipes(weather_data, days, reroll_index=None, current_menu=None):
     """Select recipes based on weather and days needed.
     
     Args:
         weather_data: Weather forecast data
         days: Number of days to plan for
-        exclude_indices: List of recipe indices to keep (not re-roll)
+        reroll_index: Index of recipe to replace (for re-rolls)
+        current_menu: Current menu to preserve order (for re-rolls)
     """
     temps = [day['temp'] for day in weather_data['forecast']]
     too_hot = any(temp > 90 for temp in temps)
     
     recipes = load_recipes()
     
-    # Start with excluded recipes if provided
-    selected_recipes = []
-    kept_recipes = []
-    total_portions = 0
-    
-    if exclude_indices:
-        # Keep recipes at specified indices
-        for idx in exclude_indices:
-            if 0 <= idx < len(recipes):
-                recipe = recipes[idx]
-                kept_recipes.append(recipe)
-                selected_recipes.append(recipe)
-                total_portions += int(recipe.get("portions", "1"))
-    
-    # Filter available recipes (exclude hot days + already selected)
-    available_recipes = [
-        r for r in recipes 
-        if not (too_hot and r.get("oven", False)) 
-        and r not in kept_recipes
-    ]
-    random.shuffle(available_recipes)
-    
-    # Add more recipes until we have enough portions
-    for recipe in available_recipes:
-        if total_portions >= days:
-            break
-        portions = int(recipe.get("portions", "1"))
-        selected_recipes.append(recipe)
-        total_portions += portions
+    # Handle re-roll: replace recipe at specific index
+    if reroll_index is not None and current_menu:
+        selected_recipes = current_menu.copy()
+        
+        # Filter available recipes (exclude hot days + already in menu)
+        available_recipes = [
+            r for r in recipes 
+            if not (too_hot and r.get("oven", False)) 
+            and r not in current_menu
+        ]
+        random.shuffle(available_recipes)
+        
+        # Replace the recipe at reroll_index
+        if available_recipes and 0 <= reroll_index < len(selected_recipes):
+            selected_recipes[reroll_index] = available_recipes[0]
+        
+        total_portions = sum(int(r.get("portions", "1")) for r in selected_recipes)
+    else:
+        # Initial generation: select recipes from scratch
+        selected_recipes = []
+        total_portions = 0
+        
+        # Filter available recipes (exclude hot days)
+        available_recipes = [
+            r for r in recipes 
+            if not (too_hot and r.get("oven", False))
+        ]
+        random.shuffle(available_recipes)
+        
+        # Add recipes until we have enough portions
+        for recipe in available_recipes:
+            if total_portions >= days:
+                break
+            portions = int(recipe.get("portions", "1"))
+            selected_recipes.append(recipe)
+            total_portions += portions
     
     grocery_list = generate_grocery_list(selected_recipes)
     
@@ -331,7 +339,8 @@ def get_dinner_menu():
         if request.method == 'POST':
             data = request.get_json()
             weather_data = data.get('weather')
-            exclude_indices = data.get('exclude_indices', [])  # Indices of recipes to keep
+            reroll_index = data.get('reroll_index')  # Index of recipe to replace
+            current_menu = data.get('current_menu', [])  # Current menu to preserve order
             
             if not weather_data:
                 app.logger.warning('POST request missing weather data')
@@ -340,18 +349,19 @@ def get_dinner_menu():
                     "error": "Weather data required for re-roll"
                 }), 400
             
-            if exclude_indices:
-                app.logger.info(f'Re-rolling dinner menu for {days} days, keeping recipes at indices: {exclude_indices}')
+            if reroll_index is not None:
+                app.logger.info(f'Re-rolling recipe at index {reroll_index} for {days} days')
             else:
                 app.logger.info(f'Re-rolling dinner menu for {days} days with cached weather')
         else:
             # Get fresh weather forecast for GET request
             app.logger.info(f'Generating dinner menu for {days} days with weather')
             weather_data = get_weather_forecast(days)
-            exclude_indices = []
+            reroll_index = None
+            current_menu = []
         
         # Select recipes
-        dinner_plan = select_dinner_recipes(weather_data, days, exclude_indices)
+        dinner_plan = select_dinner_recipes(weather_data, days, reroll_index, current_menu)
         app.logger.info(f'Selected {len(dinner_plan["selected_recipes"])} recipes for dinner menu')
         
         return jsonify({

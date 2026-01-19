@@ -63,12 +63,28 @@ services:
       - "traefik.http.routers.api.tls.certresolver=cloudflare"
       - "traefik.http.services.api.loadbalancer.server.port=5000"
 
+  # DEPRECATED: Streamlit frontend (replaced by Vue.js)
+  # frontend:
+  #   image: ${ECR_REGISTRY}/dinner-menu-frontend:latest
+  #   container_name: dinner-menu-frontend
+  #   restart: unless-stopped
+  #   environment:
+  #     - API_BASE_URL=http://api:5000/api
+  #   depends_on:
+  #     - api
+  #   networks:
+  #     - dinner-menu-network
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.frontend.rule=Host(`streamlit.dinner-menu.kcarterlabs.tech`)"
+  #     - "traefik.http.routers.frontend.entrypoints=websecure"
+  #     - "traefik.http.routers.frontend.tls.certresolver=cloudflare"
+  #     - "traefik.http.services.frontend.loadbalancer.server.port=8501"
+
   frontend:
     image: ${ECR_REGISTRY}/dinner-menu-frontend:latest
-    container_name: dinner-menu-frontend
+    container_name: dinner-menu-vue
     restart: unless-stopped
-    environment:
-      - API_BASE_URL=http://api:5000/api
     depends_on:
       - api
     networks:
@@ -78,7 +94,22 @@ services:
       - "traefik.http.routers.frontend.rule=Host(`dinner-menu.kcarterlabs.tech`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=cloudflare"
-      - "traefik.http.services.frontend.loadbalancer.server.port=8501"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  vue-frontend:
+    image: ${ECR_REGISTRY}/dinner-menu-vue:latest
+    container_name: dinner-menu-vue
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - dinner-menu-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vue.rule=Host(`vue.dinner-menu.kcarterlabs.tech`)"
+      - "traefik.http.routers.vue.entrypoints=websecure"
+      - "traefik.http.routers.vue.tls.certresolver=cloudflare"
+      - "traefik.http.services.vue.loadbalancer.server.port=80"
 
 networks:
   dinner-menu-network:

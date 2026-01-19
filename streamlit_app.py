@@ -4,6 +4,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
+from difflib import SequenceMatcher
 
 # Logging configuration
 if not os.path.exists('logs'):
@@ -91,6 +92,43 @@ def add_recipe_api(recipe_data):
     except Exception as e:
         logger.error(f'Error adding recipe: {e}')
         return {"success": False, "error": str(e)}
+
+def get_all_ingredients():
+    """Extract all unique ingredients from existing recipes"""
+    recipes = get_recipes()
+    ingredients_set = set()
+    
+    for recipe in recipes:
+        for ingredient in recipe.get('ingredients', []):
+            # Clean the ingredient: remove quantities, split on common separators
+            # This handles formats like "1 cup flour", "2 tablespoons olive oil", etc.
+            ingredient_lower = ingredient.lower().strip()
+            ingredients_set.add(ingredient_lower)
+    
+    return sorted(list(ingredients_set))
+
+def find_similar_ingredients(input_text, all_ingredients, threshold=0.6):
+    """Find ingredients similar to the input text using fuzzy matching"""
+    if not input_text or len(input_text) < 2:
+        return []
+    
+    input_lower = input_text.lower().strip()
+    matches = []
+    
+    for ingredient in all_ingredients:
+        # Check if input is a substring
+        if input_lower in ingredient:
+            matches.append((ingredient, 1.0))
+            continue
+        
+        # Use fuzzy matching
+        ratio = SequenceMatcher(None, input_lower, ingredient).ratio()
+        if ratio >= threshold:
+            matches.append((ingredient, ratio))
+    
+    # Sort by similarity score (descending)
+    matches.sort(key=lambda x: x[1], reverse=True)
+    return [match[0] for match in matches[:10]]  # Return top 10 matches
 
 def delete_recipe_api(index):
     """Delete a recipe via API"""
@@ -340,6 +378,64 @@ elif page == "📋 View Recipes":
 elif page == "➕ Add Recipe":
     st.header("➕ Add New Recipe")
     
+    # Load existing ingredients for fuzzy matching
+    if 'all_ingredients' not in st.session_state:
+        st.session_state.all_ingredients = get_all_ingredients()
+    
+    # Initialize ingredients list for this recipe
+    if 'current_recipe_ingredients' not in st.session_state:
+        st.session_state.current_recipe_ingredients = []
+    
+    # INGREDIENTS SECTION (outside form for interactivity)
+    st.subheader("Ingredients")
+    
+    col_input, col_add = st.columns([4, 1])
+    with col_input:
+        ingredient_input = st.text_input(
+            "Type ingredient",
+            placeholder="Start typing... (e.g., tomato, pasta)",
+            key="ingredient_input",
+            label_visibility="collapsed"
+        )
+    
+    # Show fuzzy matches if user is typing
+    if ingredient_input and len(ingredient_input) >= 2:
+        matches = find_similar_ingredients(ingredient_input, st.session_state.all_ingredients, threshold=0.4)
+        
+        if matches:
+            st.caption(f"💡 {len(matches)} similar ingredients found - click to add:")
+            cols = st.columns(4)
+            for idx, match in enumerate(matches[:8]):  # Show top 8
+                with cols[idx % 4]:
+                    if st.button(match, key=f"match_{idx}", use_container_width=True):
+                        if match not in st.session_state.current_recipe_ingredients:
+                            st.session_state.current_recipe_ingredients.append(match)
+                            st.rerun()
+    
+    # Manual add button
+    with col_add:
+        if st.button("➕ Add", use_container_width=True, disabled=not ingredient_input):
+            if ingredient_input and ingredient_input not in st.session_state.current_recipe_ingredients:
+                st.session_state.current_recipe_ingredients.append(ingredient_input)
+                st.rerun()
+    
+    # Display current ingredients list
+    if st.session_state.current_recipe_ingredients:
+        st.markdown("**Added ingredients:**")
+        for idx, ing in enumerate(st.session_state.current_recipe_ingredients):
+            col_ing, col_remove = st.columns([5, 1])
+            with col_ing:
+                st.text(f"{idx + 1}. {ing}")
+            with col_remove:
+                if st.button("🗑️", key=f"remove_{idx}"):
+                    st.session_state.current_recipe_ingredients.pop(idx)
+                    st.rerun()
+    else:
+        st.info("No ingredients added yet. Start typing above to add ingredients.")
+    
+    st.markdown("---")
+    
+    # RECIPE FORM
     with st.form("add_recipe_form"):
         title = st.text_input("Recipe Title*", placeholder="e.g., Spaghetti Carbonara")
         
@@ -351,27 +447,18 @@ elif page == "➕ Add Recipe":
             stove = st.checkbox("Requires Stove")
             date = st.date_input("Date", datetime.now())
         
-        ingredients_text = st.text_area(
-            "Ingredients* (one per line or comma-separated)",
-            placeholder="pasta\neggs\nbacon\nparmesan cheese"
-        )
-        
         submitted = st.form_submit_button("Add Recipe", use_container_width=True)
         
         if submitted:
-            if not title or not ingredients_text:
-                st.error("Please fill in all required fields (marked with *)")
+            if not title:
+                st.error("Please enter a recipe title")
+            elif not st.session_state.current_recipe_ingredients:
+                st.error("Please add at least one ingredient above")
             else:
-                # Parse ingredients
-                if '\n' in ingredients_text:
-                    ingredients = [i.strip() for i in ingredients_text.split('\n') if i.strip()]
-                else:
-                    ingredients = [i.strip() for i in ingredients_text.split(',') if i.strip()]
-                
                 recipe_data = {
                     "title": title,
                     "date": date.strftime('%Y-%m-%d'),
-                    "ingredients": ingredients,
+                    "ingredients": st.session_state.current_recipe_ingredients,
                     "oven": oven,
                     "stove": stove,
                     "portions": str(portions)
@@ -383,6 +470,10 @@ elif page == "➕ Add Recipe":
                 if result.get('success'):
                     st.success(f"✅ Recipe '{title}' added successfully!")
                     st.balloons()
+                    # Clear the ingredients list for next recipe
+                    st.session_state.current_recipe_ingredients = []
+                    # Reload ingredients cache
+                    st.session_state.all_ingredients = get_all_ingredients()
                 else:
                     st.error(f"❌ Error: {result.get('error')}")
 

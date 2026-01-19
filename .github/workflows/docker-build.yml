@@ -46,17 +46,36 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-test.txt
       
-      - name: Run tests
+      - name: Run Python tests
         run: |
-          echo "🧪 Running tests (unit + integration + e2e)..."
+          echo "🧪 Running Python backend tests..."
           python -m pytest tests/ -v --cov=. --cov-report=term --cov-report=xml
-          echo "✅ All tests passed"
+          echo "✅ Backend tests passed"
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: vue-frontend/package-lock.json
+      
+      - name: Install Vue frontend dependencies
+        run: |
+          cd vue-frontend
+          npm ci
+      
+      - name: Run Vue frontend tests
+        run: |
+          cd vue-frontend
+          echo "🧪 Running Vue.js frontend tests..."
+          npm test -- --run
+          echo "✅ Frontend tests passed"
       
       - name: Upload coverage reports
         if: always()
@@ -148,15 +167,15 @@ jobs:
           REPOSITORY: ${{ secrets.ECR_REGISTRY_FRONTEND }}
         run: |
           set -euo pipefail
-          echo "Building frontend image..."
+          echo "Building Vue.js frontend image..."
           echo "Target: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
-          # Build and push frontend with SHA tag using Dockerfile.frontend
-          docker build -f Dockerfile.frontend -t $REGISTRY/$REPOSITORY:$IMAGE_TAG . || { echo "❌ Frontend build failed"; exit 1; }
+          # Build and push Vue frontend with SHA tag using production Dockerfile
+          docker build -f vue-frontend/Dockerfile -t $REGISTRY/$REPOSITORY:$IMAGE_TAG ./vue-frontend || { echo "❌ Frontend build failed"; exit 1; }
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG || { echo "❌ Frontend push failed"; exit 1; }
           # Tag and push as latest only if the above succeeded
           docker tag $REGISTRY/$REPOSITORY:$IMAGE_TAG $REGISTRY/$REPOSITORY:latest || { echo "❌ Frontend tag failed"; exit 1; }
           docker push $REGISTRY/$REPOSITORY:latest || { echo "❌ Frontend push latest failed"; exit 1; }
-          echo "✅ Frontend image pushed successfully"
+          echo "✅ Vue.js frontend image pushed successfully"
       
       - name: Build summary
         if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
@@ -170,7 +189,7 @@ jobs:
           echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_BACKEND }}:latest" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Frontend Image:" >> $GITHUB_STEP_SUMMARY
+          echo "### Vue.js Frontend Image:" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_FRONTEND }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_FRONTEND }}:latest" >> $GITHUB_STEP_SUMMARY

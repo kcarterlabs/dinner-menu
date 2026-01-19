@@ -48,3 +48,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Deployment scripts (contain environment-specific config)
+deploy-traefik.sh
+deploy.sh
