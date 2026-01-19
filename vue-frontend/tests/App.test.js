@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '../src/App.vue'
 import HomePage from '../src/components/HomePage.vue'
@@ -7,13 +7,22 @@ import AddRecipe from '../src/components/AddRecipe.vue'
 import DinnerMenu from '../src/components/DinnerMenu.vue'
 
 describe('App Component', () => {
+  let wrapper
+
+  afterEach(() => {
+    if (wrapper) {
+      wrapper.unmount()
+      wrapper = null
+    }
+  })
+
   it('renders the header', () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     expect(wrapper.find('h1').text()).toContain('Dinner Menu')
   })
 
   it('renders navigation buttons', () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     const buttons = wrapper.findAll('.nav button')
     
     expect(buttons.length).toBe(4)
@@ -24,13 +33,13 @@ describe('App Component', () => {
   })
 
   it('starts on home page', () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     expect(wrapper.vm.currentPage).toBe('home')
     expect(wrapper.findComponent(HomePage).exists()).toBe(true)
   })
 
   it('switches to recipes page when clicked', async () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     const buttons = wrapper.findAll('.nav button')
     
     await buttons[1].trigger('click')
@@ -39,7 +48,7 @@ describe('App Component', () => {
   })
 
   it('switches to add recipe page when clicked', async () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     const buttons = wrapper.findAll('.nav button')
     
     await buttons[2].trigger('click')
@@ -48,7 +57,7 @@ describe('App Component', () => {
   })
 
   it('switches to dinner menu page when clicked', async () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     const buttons = wrapper.findAll('.nav button')
     
     await buttons[3].trigger('click')
@@ -57,7 +66,7 @@ describe('App Component', () => {
   })
 
   it('highlights active page button', async () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     const buttons = wrapper.findAll('.nav button')
     
     // Home should be active initially
@@ -72,7 +81,7 @@ describe('App Component', () => {
   })
 
   it('computes current component correctly', () => {
-    const wrapper = mount(App)
+    wrapper = mount(App)
     
     wrapper.vm.currentPage = 'home'
     expect(wrapper.vm.currentComponent).toBe('HomePage')
