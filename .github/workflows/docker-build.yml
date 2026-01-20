@@ -36,6 +36,21 @@ jobs:
     needs: secret-scan
     runs-on: ubuntu-latest
     
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: changeme123
+          MONGO_INITDB_DATABASE: dinner_menu
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,6 +66,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-test.txt
+      
+      - name: Install MongoDB tools
+        run: |
+          wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-mongosh
+      
+      - name: Set environment variables for tests
+        run: |
+          echo "MONGO_PASSWORD=changeme123" >> $GITHUB_ENV
+          echo "MONGODB_DATABASE=dinner_menu" >> $GITHUB_ENV
+          echo "USE_MONGODB=true" >> $GITHUB_ENV
+      
+      - name: Wait for MongoDB to be ready
+        run: |
+          echo "Waiting for MongoDB to be ready..."
+          timeout 30 bash -c 'until mongosh --host localhost --port 27017 --username admin --password changeme123 --eval "db.runCommand(\"ping\").ok" --quiet; do sleep 1; done'
+          echo "✅ MongoDB is ready"
       
       - name: Run Python tests
         run: |
