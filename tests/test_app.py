@@ -75,33 +75,8 @@ class TestFlaskAPI(unittest.TestCase):
         data = json.loads(response.data)
         self.assertFalse(data['success'])
     
-    @patch('app.save_recipes')
-    @patch('app.load_recipes')
-    def test_delete_recipe(self, mock_load, mock_save):
-        """Test deleting a recipe"""
-        mock_load.return_value = [
-            {"title": "Recipe 1", "ingredients": [], "oven": False, "stove": False, "portions": "1"},
-            {"title": "Recipe 2", "ingredients": [], "oven": False, "stove": False, "portions": "1"}
-        ]
-        
-        response = self.client.delete('/api/recipes/0')
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertTrue(data['success'])
-        self.assertEqual(data['deleted_recipe']['title'], 'Recipe 1')
-        mock_save.assert_called_once()
-    
-    @patch('app.load_recipes')
-    def test_delete_recipe_invalid_index(self, mock_load):
-        """Test deleting recipe with invalid index"""
-        mock_load.return_value = [
-            {"title": "Recipe 1", "ingredients": [], "oven": False, "stove": False, "portions": "1"}
-        ]
-        
-        response = self.client.delete('/api/recipes/5')
-        self.assertEqual(response.status_code, 404)
-        data = json.loads(response.data)
-        self.assertFalse(data['success'])
+    # Delete recipe tests removed - MongoDB uses ObjectIds instead of numeric indices
+    # Delete functionality is tested in test_mongodb_integration.py and test_e2e.py
     
     @patch('app.get_weather_forecast')
     def test_get_weather(self, mock_weather):
@@ -265,18 +240,8 @@ class TestFlaskAPI(unittest.TestCase):
         pasta_item = next(item for item in grocery_list if item['ingredient'] == 'pasta')
         self.assertEqual(pasta_item['count'], 2)
     
-    def test_load_recipes_file_not_exists(self):
-        """Test loading recipes when file doesn't exist"""
-        with patch('os.path.exists', return_value=False):
-            recipes = app.load_recipes()
-            self.assertEqual(recipes, [])
-    
-    @patch('builtins.open', new_callable=mock_open, read_data='invalid json')
-    @patch('os.path.exists', return_value=True)
-    def test_load_recipes_invalid_json(self, mock_exists, mock_file):
-        """Test loading recipes with invalid JSON"""
-        recipes = app.load_recipes()
-        self.assertEqual(recipes, [])
+    # File operation tests removed - app now uses MongoDB instead of JSON files
+    # MongoDB connection tests are in test_mongodb_integration.py
 
 if __name__ == '__main__':
     unittest.main()
