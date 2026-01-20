@@ -30,13 +30,14 @@ def migrate_recipes():
     # Get MongoDB credentials from environment
     mongo_password = os.getenv('MONGO_PASSWORD', 'changeme123')
     mongo_database = os.getenv('MONGODB_DATABASE', 'dinner_menu')
+    mongo_host = os.getenv('MONGO_HOST', 'mongodb')  # Use 'mongodb' for Docker, 'localhost' for local
     
-    # Build connection string for localhost (not Docker internal network)
+    # Build connection string
     # URL encode the password to handle special characters
     encoded_password = quote_plus(mongo_password)
-    mongodb_uri = f'mongodb://admin:{encoded_password}@localhost:27017/'
+    mongodb_uri = f'mongodb://admin:{encoded_password}@{mongo_host}:27017/'
     
-    print(f"Connecting to MongoDB at localhost:27017")
+    print(f"Connecting to MongoDB at {mongo_host}:27017")
     
     try:
         client = MongoClient(mongodb_uri, serverSelectionTimeoutMS=5000)

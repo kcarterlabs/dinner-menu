@@ -71,6 +71,8 @@ services:
       - RAPID_API_FORECAST_KEY=${RAPID_API_FORECAST_KEY}
       - MONGODB_URI=mongodb://admin:${MONGO_PASSWORD}@mongodb:27017/
       - MONGODB_DATABASE=dinner_menu
+      - MONGO_HOST=mongodb
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
     volumes:
       - ./recipes.json:/app/recipes.json
       - ./backups:/app/backups
