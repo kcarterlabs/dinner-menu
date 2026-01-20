@@ -15,13 +15,24 @@ load_dotenv()
 
 def parse_ingredient(ingredient_str):
     """
-    Parse ingredient string into structured format.
-    This is a simple parser - can be enhanced later.
+    Parse ingredient string or dict into structured format.
+    Handles both legacy string format and new dict format.
     """
+    # If already a dict, ensure it has required fields
+    if isinstance(ingredient_str, dict):
+        return {
+            "original": ingredient_str.get("original", ""),
+            "item": ingredient_str.get("item", ""),
+            "quantity": ingredient_str.get("quantity"),
+            "unit": ingredient_str.get("unit", ""),
+        }
+    
+    # Legacy string format - convert to dict
     return {
         "original": ingredient_str,
         "item": ingredient_str.lower().strip(),
-        # TODO: Add parsing for quantity, unit, preparation
+        "quantity": None,
+        "unit": "",
     }
 
 def migrate_recipes():
