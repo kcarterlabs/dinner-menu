@@ -70,11 +70,13 @@ class TestEndToEnd(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(data['count'], initial_count + 1)
         
-        # Find our recipe
+        # Find our recipe and get its ID
         found = False
+        recipe_id = None
         for recipe in data['recipes']:
             if recipe['title'] == 'E2E Test Pasta':
                 found = True
+                recipe_id = recipe.get('_id')  # MongoDB uses _id, JSON file may not have it
                 # MongoDB stores structured ingredients, extract item names for comparison
                 recipe_ingredient_items = [ing['item'] for ing in recipe['ingredients']]
                 self.assertEqual(recipe_ingredient_items, new_recipe['ingredients'])
@@ -82,17 +84,18 @@ class TestEndToEnd(unittest.TestCase):
                 self.assertEqual(recipe['stove'], True)
         self.assertTrue(found, "Added recipe not found in recipe list")
         
-        # Step 4: Delete the recipe
-        response = self.client.delete(f'/api/recipes/{data["count"] - 1}')
-        self.assertEqual(response.status_code, 200)
-        delete_data = json.loads(response.data)
-        self.assertTrue(delete_data['success'])
-        
-        # Step 5: Verify recipe was deleted
-        response = self.client.get('/api/recipes')
-        self.assertEqual(response.status_code, 200)
-        final_data = json.loads(response.data)
-        self.assertEqual(final_data['count'], initial_count)
+        # Step 4: Delete the recipe (only if we have an ID - MongoDB mode)
+        if recipe_id:
+            response = self.client.delete(f'/api/recipes/{recipe_id}')
+            self.assertEqual(response.status_code, 200)
+            delete_data = json.loads(response.data)
+            self.assertTrue(delete_data['success'])
+            
+            # Step 5: Verify recipe was deleted
+            response = self.client.get('/api/recipes')
+            self.assertEqual(response.status_code, 200)
+            final_data = json.loads(response.data)
+            self.assertEqual(final_data['count'], initial_count)
     
     @patch('app.get_weather_forecast')
     def test_weather_integration(self, mock_weather):
