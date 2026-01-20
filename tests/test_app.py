@@ -233,7 +233,7 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
         self.assertFalse(data['success'])
-        self.assertIn('Weather data required', data['error'])
+        self.assertIn('Weather required', data['error'])
     
     @patch('app.load_recipes')
     def test_quick_dinner_menu(self, mock_load):

@@ -15,7 +15,7 @@
 
       <div
         v-for="(recipe, index) in recipes"
-        :key="index"
+        :key="recipe._id || index"
         class="recipe-card"
       >
         <h3>{{ recipe.title }}</h3>
@@ -32,7 +32,7 @@
           <strong>Ingredients:</strong>
           <ul style="margin-left: 20px; margin-top: 8px;">
             <li v-for="(ingredient, idx) in recipe.ingredients" :key="idx">
-              {{ ingredient }}
+              {{ formatIngredient(ingredient) }}
             </li>
           </ul>
         </div>
@@ -42,7 +42,7 @@
         </div>
 
         <button
-          @click="deleteRecipe(index)"
+          @click="deleteRecipe(recipe._id)"
           class="btn btn-danger btn-small"
           style="margin-top: 15px;"
         >
@@ -75,17 +75,37 @@ export default {
       }
     }
 
-    const deleteRecipe = async (index) => {
+    const deleteRecipe = async (recipeId) => {
       if (!confirm('Are you sure you want to delete this recipe?')) {
         return
       }
 
       try {
-        await axios.delete(`/api/recipes/${index}`)
+        await axios.delete(`/api/recipes/${recipeId}`)
         await loadRecipes()
       } catch (error) {
         alert(`Error deleting recipe: ${error.message}`)
       }
+    }
+
+    const formatIngredient = (ingredient) => {
+      // Handle both structured {quantity, unit, item} and legacy string formats
+      if (typeof ingredient === 'string') {
+        return ingredient
+      }
+      
+      // Use the original field if available (preserves user's exact input)
+      if (ingredient.original) {
+        return ingredient.original
+      }
+      
+      // Otherwise construct from structured fields
+      const parts = []
+      if (ingredient.quantity) parts.push(ingredient.quantity)
+      if (ingredient.unit) parts.push(ingredient.unit)
+      if (ingredient.item) parts.push(ingredient.item)
+      
+      return parts.join(' ') || 'Unknown ingredient'
     }
 
     onMounted(() => {
@@ -95,7 +115,8 @@ export default {
     return {
       recipes,
       loading,
-      deleteRecipe
+      deleteRecipe,
+      formatIngredient
     }
   }
 }

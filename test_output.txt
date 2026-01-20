@@ -1,60 +1,54 @@
-============================= test session starts ==============================
-platform linux -- Python 3.13.11, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python
-cachedir: .pytest_cache
-rootdir: /home/kenny/dinner-menu
-configfile: pytest.ini
-plugins: requests-mock-1.12.1, mock-3.15.1, cov-7.0.0, anyio-4.8.0
-collecting ... collected 50 items
+╔════════════════════════════════════════════════════════════════╗
+║         DINNER MENU - COMPREHENSIVE TEST SUITE                ║
+╚════════════════════════════════════════════════════════════════╝
 
-tests/test_add_recipe.py::TestAddRecipe::test_add_recipe_no_oven_yes_stove PASSED [  2%]
-tests/test_add_recipe.py::TestAddRecipe::test_add_recipe_strips_whitespace PASSED [  4%]
-tests/test_add_recipe.py::TestAddRecipe::test_add_recipe_user_input PASSED [  6%]
-tests/test_add_recipe.py::TestAddRecipe::test_load_recipes_corrupted_json PASSED [  8%]
-tests/test_add_recipe.py::TestAddRecipe::test_load_recipes_file_not_exists PASSED [ 10%]
-tests/test_add_recipe.py::TestAddRecipe::test_load_recipes_success PASSED [ 12%]
-tests/test_add_recipe.py::TestAddRecipe::test_save_recipes_no_backup_when_file_missing PASSED [ 14%]
-tests/test_add_recipe.py::TestAddRecipe::test_save_recipes_with_backup PASSED [ 16%]
-tests/test_app.py::TestFlaskAPI::test_add_recipe PASSED                  [ 18%]
-tests/test_app.py::TestFlaskAPI::test_add_recipe_missing_field PASSED    [ 20%]
-tests/test_app.py::TestFlaskAPI::test_delete_recipe PASSED               [ 22%]
-tests/test_app.py::TestFlaskAPI::test_delete_recipe_invalid_index PASSED [ 24%]
-tests/test_app.py::TestFlaskAPI::test_dinner_menu PASSED                 [ 26%]
-tests/test_app.py::TestFlaskAPI::test_dinner_menu_reroll_missing_weather PASSED [ 28%]
-tests/test_app.py::TestFlaskAPI::test_dinner_menu_reroll_with_cached_weather PASSED [ 30%]
-tests/test_app.py::TestFlaskAPI::test_generate_grocery_list PASSED       [ 32%]
-tests/test_app.py::TestFlaskAPI::test_get_recipes PASSED                 [ 34%]
-tests/test_app.py::TestFlaskAPI::test_get_weather PASSED                 [ 36%]
-tests/test_app.py::TestFlaskAPI::test_get_weather_invalid_days PASSED    [ 38%]
-tests/test_app.py::TestFlaskAPI::test_health_endpoint PASSED             [ 40%]
-tests/test_app.py::TestFlaskAPI::test_load_recipes_file_not_exists PASSED [ 42%]
-tests/test_app.py::TestFlaskAPI::test_load_recipes_invalid_json PASSED   [ 44%]
-tests/test_app.py::TestFlaskAPI::test_quick_dinner_menu PASSED           [ 46%]
-tests/test_dinner_menu.py::TestDinnerMenu::test_dinner_logic_hot_weather_filters_oven PASSED [ 48%]
-tests/test_dinner_menu.py::TestDinnerMenu::test_dinner_logic_normal_temp PASSED [ 50%]
-tests/test_dinner_menu.py::TestDinnerMenu::test_forecast_success PASSED  [ 52%]
-tests/test_dinner_menu.py::TestDinnerMenu::test_forecast_with_api_key PASSED [ 54%]
-tests/test_dinner_menu.py::TestDinnerMenu::test_temperature_parsing PASSED [ 56%]
-tests/test_e2e.py::TestEndToEnd::test_complete_recipe_workflow PASSED    [ 58%]
-tests/test_e2e.py::TestEndToEnd::test_dinner_menu_generation PASSED      [ 60%]
-tests/test_e2e.py::TestEndToEnd::test_error_handling_invalid_recipe PASSED [ 62%]
-tests/test_e2e.py::TestEndToEnd::test_error_handling_invalid_recipe_index PASSED [ 64%]
-tests/test_e2e.py::TestEndToEnd::test_error_handling_invalid_weather_days PASSED [ 66%]
-tests/test_e2e.py::TestEndToEnd::test_full_user_journey PASSED           [ 68%]
-tests/test_e2e.py::TestEndToEnd::test_grocery_list_generation PASSED     [ 70%]
-tests/test_e2e.py::TestEndToEnd::test_health_check PASSED                [ 72%]
-tests/test_e2e.py::TestEndToEnd::test_quick_dinner_menu PASSED           [ 74%]
-tests/test_e2e.py::TestEndToEnd::test_weather_integration PASSED         [ 76%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_add_recipe_exception PASSED [ 78%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_add_recipe_success PASSED [ 80%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_delete_recipe_success PASSED [ 82%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_dinner_menu_success PASSED [ 84%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_quick_dinner_menu_success PASSED [ 86%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_recipes_exception PASSED [ 88%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_recipes_failure PASSED [ 90%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_recipes_success PASSED [ 92%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_get_weather_success PASSED [ 94%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_reroll_dinner_menu_exception PASSED [ 96%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_reroll_dinner_menu_failure PASSED [ 98%]
-tests/test_streamlit_app.py::TestStreamlitHelpers::test_reroll_dinner_menu_success PASSED [100%]
 
-============================== 50 passed in 0.19s ==============================
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  1. Docker Containers
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;32m✓[0m MongoDB container running
+  [0;32m✓[0m API container running
+  [0;32m✓[0m Vue frontend container running
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  2. MongoDB Tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;31m✗[0m Failed to connect to MongoDB
+  [0;31m✗[0m Ingredients missing structured format
+  [0;31m✗[0m Ingredient aggregation failed
+  [0;31m✗[0m Non-ingredients not filtered properly
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  3. Ingredient Parser
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;32m✓[0m Basic ingredient parsing
+  [0;32m✓[0m Fraction conversion
+  [0;32m✓[0m Unit extraction
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  4. API Endpoints
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;32m✓[0m GET /api/health
+  [0;32m✓[0m GET /api/recipes (3 recipes)
+  [0;31m✗[0m POST /api/dinner-menu
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  5. Frontend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;32m✓[0m Frontend accessible at http://localhost:5173
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  6. Python Unit Tests
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  [0;32m✓[0m tests/test_dinner_menu.py
+  [1;33m⚠[0m tests/test_app.py (may need updating for MongoDB)
+
+╔════════════════════════════════════════════════════════════════╗
+║                      TEST SUMMARY                              ║
+╚════════════════════════════════════════════════════════════════╝
+
+  [0;32mPassed:[0m 10
+  [0;31mFailed:[0m 5
+
+[0;31m✗ Some tests failed[0m
+

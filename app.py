@@ -9,20 +9,21 @@ import time
 import random
 import logging
 from logging.handlers import RotatingFileHandler
+from ingredient_parser import parse_ingredient
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend access
+CORS(app)
 
 # Configuration
 RECIPES_FILE = "recipes.json"
 BACKUP_DIR = "backups"
 
-# Logging configuration
+# Logging
 if not os.path.exists('logs'):
     try:
         os.makedirs('logs')
     except (OSError, PermissionError):
-        pass  # Skip log directory creation if no permissions
+        pass
 
 try:
     file_handler = RotatingFileHandler('logs/api.log', maxBytes=10240000, backupCount=10)
@@ -34,26 +35,31 @@ try:
     app.logger.setLevel(logging.INFO)
     app.logger.info('Dinner Menu API startup')
 except (OSError, PermissionError):
-    # Fallback to console logging only if file logging fails
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     app.logger.addHandler(console_handler)
     app.logger.setLevel(logging.INFO)
 
-# Request logging middleware
-@app.before_request
-def log_request():
-    app.logger.info(f'{request.method} {request.path} - {request.remote_addr}')
+# MongoDB initialization (with fallback)
+try:
+    from db import RecipeDB, convert_objectid_to_str
+    recipe_db = RecipeDB()
+    app.logger.info('MongoDB initialized')
+    USE_MONGODB = True
+except Exception as e:
+    app.logger.warning(f'MongoDB not available: {e}')
+    recipe_db = None
+    USE_MONGODB = False
 
-@app.after_request
-def log_response(response):
-    app.logger.info(f'{request.method} {request.path} - Status: {response.status_code}')
-    return response
-
-# ============= Recipe Management Functions =============
-
+# Recipe Management
 def load_recipes():
-    """Load recipes from the JSON file or return empty list if missing."""
+    if USE_MONGODB and recipe_db:
+        try:
+            recipes = recipe_db.get_all_recipes()
+            return convert_objectid_to_str(recipes)
+        except Exception as e:
+            app.logger.error(f"MongoDB error: {e}")
+    
     if os.path.exists(RECIPES_FILE):
         with open(RECIPES_FILE, "r") as f:
             try:
@@ -63,118 +69,147 @@ def load_recipes():
     return []
 
 def save_recipes(data):
-    """Save recipes to JSON, with a backup of the old file."""
     if os.path.exists(RECIPES_FILE):
         os.makedirs(BACKUP_DIR, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = os.path.join(BACKUP_DIR, f"recipes_{timestamp}.json")
         shutil.copy(RECIPES_FILE, backup_file)
-
+    
     with open(RECIPES_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-# ============= Weather & Dinner Menu Functions =============
-
+# Weather
 def get_weather_forecast(days):
-    """Fetch weather forecast for specified days."""
     api_key = os.getenv('RAPID_API_FORECAST_KEY')
-    
     if not api_key:
-        raise ValueError("RAPID_API_FORECAST_KEY environment variable not set")
+        raise ValueError("RAPID_API_FORECAST_KEY not set")
     
     url = "https://weatherapi-com.p.rapidapi.com/forecast.json"
-    querystring = {"q": "Spokane", "days": days}
-    headers = {
+    response = requests.get(url, headers={
         "x-rapidapi-key": api_key,
         "x-rapidapi-host": "weatherapi-com.p.rapidapi.com"
-    }
-    
-    response = requests.get(url, headers=headers, params=querystring)
+    }, params={"q": "Spokane", "days": days})
     response.raise_for_status()
     data = response.json()
     
-    city = data["location"]["name"]
-    region = data["location"]["region"]
-    
-    formatted = [
-        {
-            "day": datetime.strptime(day['date'], '%Y-%m-%d').strftime('%A'),
-            "date": day['date'],
-            "temp": day['day']['maxtemp_f']
-        }
-        for day in data["forecast"]["forecastday"]
-    ]
+    formatted = [{
+        "day": datetime.strptime(day['date'], '%Y-%m-%d').strftime('%A'),
+        "date": day['date'],
+        "temp": day['day']['maxtemp_f']
+    } for day in data["forecast"]["forecastday"]]
     
     return {
-        "location": f"{city}, {region}",
+        "location": f"{data['location']['name']}, {data['location']['region']}",
         "forecast": formatted
     }
 
+# Grocery List
 def generate_grocery_list(recipes):
-    """Generate a consolidated grocery list from selected recipes."""
-    all_ingredients = []
+    """Generate aggregated grocery list from recipes, summing quantities by item and unit"""
+    if USE_MONGODB and recipe_db:
+        try:
+            recipe_ids = [r.get('_id') for r in recipes if '_id' in r]
+            if recipe_ids:
+                return recipe_db.aggregate_ingredients(recipe_ids)
+        except Exception as e:
+            app.logger.warning(f"MongoDB aggregation failed: {e}")
+    
+    # Fallback: aggregate ingredients manually with quantity summing
+    from ingredient_parser import quantity_to_float, normalize_unit
+    from collections import defaultdict
+    
+    # Group by (item, unit) and collect quantities
+    ingredient_groups = defaultdict(lambda: {'quantities': [], 'recipes': set()})
+    
     for recipe in recipes:
-        all_ingredients.extend(recipe.get('ingredients', []))
+        recipe_title = recipe.get('title', 'Unknown')
+        ingredients_list = recipe.get('ingredients', [])
+        
+        for ingredient in ingredients_list:
+            if isinstance(ingredient, dict):
+                # Structured ingredient
+                item = ingredient.get('item', '').lower().strip()
+                unit = normalize_unit(ingredient.get('unit', '').lower().strip())
+                quantity = ingredient.get('quantity', '')
+            else:
+                # Legacy string format - try to parse
+                ingredient_str = str(ingredient)
+                parsed = parse_ingredient(ingredient_str)
+                item = parsed.get('item', '').lower().strip()
+                unit = normalize_unit(parsed.get('unit', '').lower().strip())
+                quantity = parsed.get('quantity', '')
+            
+            if not item:
+                continue
+                
+            # Skip non-ingredient items
+            exclude_phrases = ['look it up', 'see recipe', 'check recipe', 'refer to']
+            if any(phrase in item for phrase in exclude_phrases):
+                continue
+            
+            key = (item, unit)
+            ingredient_groups[key]['quantities'].append(quantity)
+            ingredient_groups[key]['recipes'].add(recipe_title)
     
-    # Count ingredient occurrences
-    ingredient_counts = {}
-    for ingredient in all_ingredients:
-        ingredient_lower = ingredient.lower().strip()
-        ingredient_counts[ingredient_lower] = ingredient_counts.get(ingredient_lower, 0) + 1
+    # Sum quantities and format results
+    aggregated = []
+    for (item, unit), data in sorted(ingredient_groups.items()):
+        quantities = data['quantities']
+        recipes = list(data['recipes'])
+        
+        # Sum all quantities
+        total = sum(quantity_to_float(q) for q in quantities if q)
+        
+        # Format the result
+        if total > 0:
+            # Format quantity nicely
+            if total == int(total):
+                qty_str = str(int(total))
+            else:
+                qty_str = f"{total:.2f}".rstrip('0').rstrip('.')
+            
+            if unit:
+                ingredient_str = f"{qty_str} {unit} {item}"
+            else:
+                ingredient_str = f"{qty_str} {item}"
+        else:
+            # No quantity found, just show count and item
+            if unit:
+                ingredient_str = f"{unit} {item}"
+            else:
+                ingredient_str = item
+        
+        aggregated.append({
+            "ingredient": ingredient_str,
+            "item": item,
+            "quantity": total if total > 0 else None,
+            "unit": unit,
+            "count": len(quantities),  # How many times it appears
+            "recipes": recipes
+        })
     
-    # Sort alphabetically
-    grocery_list = sorted([
-        {"ingredient": ing, "count": count}
-        for ing, count in ingredient_counts.items()
-    ], key=lambda x: x['ingredient'])
-    
-    return grocery_list
+    return aggregated
 
+
+# Recipe Selection
 def select_dinner_recipes(weather_data, days, reroll_index=None, current_menu=None):
-    """Select recipes based on weather and days needed.
-    
-    Args:
-        weather_data: Weather forecast data
-        days: Number of days to plan for
-        reroll_index: Index of recipe to replace (for re-rolls)
-        current_menu: Current menu to preserve order (for re-rolls)
-    """
     temps = [day['temp'] for day in weather_data['forecast']]
     too_hot = any(temp > 90 for temp in temps)
-    
     recipes = load_recipes()
     
-    # Handle re-roll: replace recipe at specific index
     if reroll_index is not None and current_menu:
         selected_recipes = current_menu.copy()
-        
-        # Filter available recipes (exclude hot days + already in menu)
-        available_recipes = [
-            r for r in recipes 
-            if not (too_hot and r.get("oven", False)) 
-            and r not in current_menu
-        ]
-        random.shuffle(available_recipes)
-        
-        # Replace the recipe at reroll_index
-        if available_recipes and 0 <= reroll_index < len(selected_recipes):
-            selected_recipes[reroll_index] = available_recipes[0]
-        
+        available = [r for r in recipes if not (too_hot and r.get("oven", False)) and r not in current_menu]
+        random.shuffle(available)
+        if available and 0 <= reroll_index < len(selected_recipes):
+            selected_recipes[reroll_index] = available[0]
         total_portions = sum(int(r.get("portions", "1")) for r in selected_recipes)
     else:
-        # Initial generation: select recipes from scratch
+        available = [r for r in recipes if not (too_hot and r.get("oven", False))]
+        random.shuffle(available)
         selected_recipes = []
         total_portions = 0
-        
-        # Filter available recipes (exclude hot days)
-        available_recipes = [
-            r for r in recipes 
-            if not (too_hot and r.get("oven", False))
-        ]
-        random.shuffle(available_recipes)
-        
-        # Add recipes until we have enough portions
-        for recipe in available_recipes:
+        for recipe in available:
             if total_portions >= days:
                 break
             portions = int(recipe.get("portions", "1"))
@@ -191,209 +226,206 @@ def select_dinner_recipes(weather_data, days, reroll_index=None, current_menu=No
         "grocery_list": grocery_list
     }
 
-# ============= API Routes =============
-
+# API Routes
 @app.route('/api/health', methods=['GET'])
 def health():
-    """Health check endpoint."""
-    app.logger.info('Health check requested')
     return jsonify({"status": "healthy", "message": "Dinner Menu API is running"})
 
 @app.route('/api/recipes', methods=['GET'])
 def get_recipes():
-    """Get all recipes."""
-    app.logger.info('Fetching all recipes')
-    recipes = load_recipes()
-    app.logger.info(f'Returned {len(recipes)} recipes')
-    return jsonify({
-        "success": True,
-        "count": len(recipes),
-        "recipes": recipes
-    })
+    try:
+        if USE_MONGODB:
+            # Get recipes from MongoDB
+            recipes = recipe_db.get_all_recipes()
+            # Convert ObjectId to string for JSON serialization
+            recipes_json = [convert_objectid_to_str(recipe) for recipe in recipes]
+            return jsonify({"success": True, "count": len(recipes_json), "recipes": recipes_json})
+        else:
+            # Fallback to JSON file (legacy)
+            recipes = load_recipes()
+            return jsonify({"success": True, "count": len(recipes), "recipes": recipes})
+    except Exception as e:
+        app.logger.error(f"Error getting recipes: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/recipes', methods=['POST'])
 def add_recipe():
-    """Add a new recipe."""
     try:
         data = request.get_json()
-        app.logger.info(f'Adding new recipe: {data.get("title", "Unknown")}')
+        if 'title' not in data or 'ingredients' not in data:
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
         
-        # Validate required fields
-        required_fields = ['title', 'ingredients']
-        for field in required_fields:
-            if field not in data:
-                app.logger.warning(f'Missing required field: {field}')
-                return jsonify({
-                    "success": False,
-                    "error": f"Missing required field: {field}"
-                }), 400
+        # Process ingredients - support both structured and string formats
+        ingredients = data.get('ingredients', [])
+        processed_ingredients = []
         
-        # Create recipe object
+        for ing in ingredients:
+            if isinstance(ing, dict):
+                # Already structured format from new frontend
+                processed_ingredients.append(ing)
+            elif isinstance(ing, str):
+                # Legacy string format - parse it
+                from ingredient_parser import parse_ingredient
+                processed_ingredients.append(parse_ingredient(ing.strip()))
+            else:
+                processed_ingredients.append({'item': str(ing), 'quantity': '', 'unit': '', 'original': str(ing)})
+        
         recipe = {
             "title": data['title'],
             "date": data.get('date', datetime.now().strftime('%Y-%m-%d')),
-            "ingredients": data['ingredients'] if isinstance(data['ingredients'], list) else [i.strip() for i in data['ingredients'].split(',')],
+            "ingredients": processed_ingredients,
             "oven": data.get('oven', False),
             "stove": data.get('stove', False),
             "portions": data.get('portions', "1")
         }
         
-        # Load, add, and save
+        # Save to MongoDB if available
+        if USE_MONGODB and recipe_db:
+            try:
+                recipe_id = recipe_db.create_recipe(recipe.copy())  # Pass a copy to avoid mutation
+                recipe['_id'] = recipe_id
+                # Add string versions of timestamps for JSON serialization
+                recipe['created_at'] = datetime.now().strftime('%Y-%m-%d')
+                recipe['updated_at'] = datetime.now().strftime('%Y-%m-%d')
+                app.logger.info(f"Recipe '{recipe['title']}' saved to MongoDB with ID: {recipe_id}")
+            except Exception as e:
+                app.logger.error(f"Failed to save to MongoDB: {e}, falling back to JSON")
+        else:
+            app.logger.warning(f"MongoDB not available: USE_MONGODB={USE_MONGODB}, recipe_db={recipe_db}")
+        
+        # Also save to JSON file as backup
         recipes = load_recipes()
         recipes.append(recipe)
         save_recipes(recipes)
-        app.logger.info(f'Recipe "{recipe["title"]}" added successfully')
         
-        return jsonify({
-            "success": True,
-            "message": "Recipe added successfully",
-            "recipe": recipe
-        }), 201
+        # Convert ObjectIds and datetimes for JSON response
+        recipe_response = convert_objectid_to_str(recipe)
         
+        return jsonify({"success": True, "message": "Recipe added", "recipe": recipe_response}), 201
     except Exception as e:
-        app.logger.error(f'Error adding recipe: {str(e)}')
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/recipes/<int:index>', methods=['DELETE'])
-def delete_recipe(index):
-    """Delete a recipe by index."""
+@app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
     try:
-        app.logger.info(f'Attempting to delete recipe at index {index}')
-        recipes = load_recipes()
+        if USE_MONGODB:
+            # Delete from MongoDB
+            if recipe_db.delete_recipe(recipe_id):
+                return jsonify({"success": True, "message": "Recipe deleted"})
+            else:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+        else:
+            # Fallback to JSON file (legacy)
+            recipes = load_recipes()
+            # Find recipe by _id or title
+            recipe_index = next((i for i, r in enumerate(recipes) if r.get('_id') == recipe_id or str(i) == recipe_id), None)
+            if recipe_index is None:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+            
+            deleted = recipes.pop(recipe_index)
+            save_recipes(recipes)
+            return jsonify({"success": True, "message": "Deleted", "deleted_recipe": deleted})
+    except Exception as e:
+        app.logger.error(f"Error deleting recipe {recipe_id}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/parse-ingredients', methods=['POST'])
+def parse_ingredients():
+    """Parse a list of ingredient strings into structured format"""
+    try:
+        data = request.get_json()
+        raw_ingredients = data.get('ingredients', [])
         
-        if index < 0 or index >= len(recipes):
-            app.logger.warning(f'Recipe index {index} out of range')
-            return jsonify({
-                "success": False,
-                "error": "Recipe index out of range"
-            }), 404
+        if not isinstance(raw_ingredients, list):
+            return jsonify({"success": False, "error": "Ingredients must be a list"}), 400
         
-        deleted_recipe = recipes.pop(index)
-        save_recipes(recipes)
-        app.logger.info(f'Recipe "{deleted_recipe["title"]}" deleted successfully')
+        parsed_ingredients = []
+        
+        for raw_text in raw_ingredients:
+            if not raw_text or not raw_text.strip():
+                continue
+                
+            # Clean up the text - remove checkboxes, prices, etc.
+            cleaned = raw_text.strip()
+            # Remove checkbox symbols
+            cleaned = cleaned.replace('▢', '').replace('☐', '').replace('□', '').strip()
+            # Remove prices in parentheses (e.g., ($0.70))
+            import re
+            cleaned = re.sub(r'\s*\(\$[\d.]+\)', '', cleaned)
+            # Remove leading dashes or bullets
+            cleaned = re.sub(r'^[-•*]\s*', '', cleaned).strip()
+            
+            if not cleaned:
+                continue
+            
+            # Parse the ingredient using existing parser
+            parsed = parse_ingredient(cleaned)
+            
+            # Store both parsed and original
+            ingredient = {
+                'quantity': parsed.get('quantity', ''),
+                'unit': parsed.get('unit', ''),
+                'item': parsed.get('item', cleaned),  # Fallback to cleaned text
+                'original': raw_text.strip()  # Preserve original input
+            }
+            
+            parsed_ingredients.append(ingredient)
         
         return jsonify({
             "success": True,
-            "message": "Recipe deleted successfully",
-            "deleted_recipe": deleted_recipe
+            "parsed_ingredients": parsed_ingredients,
+            "count": len(parsed_ingredients)
         })
         
     except Exception as e:
-        app.logger.error(f'Error deleting recipe: {str(e)}')
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        app.logger.error(f"Error parsing ingredients: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
-    """Get weather forecast."""
     try:
         days = request.args.get('days', default=7, type=int)
-        app.logger.info(f'Fetching weather forecast for {days} days')
-        
         if days < 1 or days > 14:
-            app.logger.warning(f'Invalid days requested: {days}')
-            return jsonify({
-                "success": False,
-                "error": "Days must be between 1 and 14"
-            }), 400
+            return jsonify({"success": False, "error": "Days must be 1-14"}), 400
         
         weather_data = get_weather_forecast(days)
-        app.logger.info(f'Weather forecast retrieved successfully')
-        
-        return jsonify({
-            "success": True,
-            "weather": weather_data
-        })
-        
+        return jsonify({"success": True, "weather": weather_data})
     except Exception as e:
-        app.logger.error(f'Error fetching weather: {str(e)}')
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/dinner-menu', methods=['GET', 'POST'])
 def get_dinner_menu():
-    """Get dinner menu suggestions based on weather and days.
-    
-    GET: Fetch weather and generate menu
-    POST: Use provided weather data to generate menu (for re-rolling)
-          Can accept 'exclude_indices' to keep certain recipes and only re-roll one
-    """
     try:
         days = request.args.get('days', default=7, type=int)
-        
         if days < 1 or days > 14:
-            app.logger.warning(f'Invalid days requested: {days}')
-            return jsonify({
-                "success": False,
-                "error": "Days must be between 1 and 14"
-            }), 400
+            return jsonify({"success": False, "error": "Days must be 1-14"}), 400
         
-        # Check if weather data is provided in POST request (re-roll)
         if request.method == 'POST':
             data = request.get_json()
             weather_data = data.get('weather')
-            reroll_index = data.get('reroll_index')  # Index of recipe to replace
-            current_menu = data.get('current_menu', [])  # Current menu to preserve order
-            
+            reroll_index = data.get('reroll_index')
+            current_menu = data.get('current_menu', [])
             if not weather_data:
-                app.logger.warning('POST request missing weather data')
-                return jsonify({
-                    "success": False,
-                    "error": "Weather data required for re-roll"
-                }), 400
-            
-            if reroll_index is not None:
-                app.logger.info(f'Re-rolling recipe at index {reroll_index} for {days} days')
-            else:
-                app.logger.info(f'Re-rolling dinner menu for {days} days with cached weather')
+                return jsonify({"success": False, "error": "Weather required"}), 400
         else:
-            # Get fresh weather forecast for GET request
-            app.logger.info(f'Generating dinner menu for {days} days with weather')
             weather_data = get_weather_forecast(days)
             reroll_index = None
             current_menu = []
         
-        # Select recipes
         dinner_plan = select_dinner_recipes(weather_data, days, reroll_index, current_menu)
-        app.logger.info(f'Selected {len(dinner_plan["selected_recipes"])} recipes for dinner menu')
-        
-        return jsonify({
-            "success": True,
-            "weather": weather_data,
-            "dinner_plan": dinner_plan
-        })
-        
+        return jsonify({"success": True, "weather": weather_data, "dinner_plan": dinner_plan})
     except Exception as e:
-        app.logger.error(f'Error generating dinner menu: {str(e)}')
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/dinner-menu/quick', methods=['GET'])
 def get_quick_dinner_menu():
-    """Get dinner menu suggestions without weather (random selection)."""
     try:
         days = request.args.get('days', default=7, type=int)
-        app.logger.info(f'Generating quick dinner menu for {days} days')
-        
         if days < 1 or days > 14:
-            app.logger.warning(f'Invalid days requested: {days}')
-            return jsonify({
-                "success": False,
-                "error": "Days must be between 1 and 14"
-            }), 400
+            return jsonify({"success": False, "error": "Days must be 1-14"}), 400
         
         recipes = load_recipes()
         random.shuffle(recipes)
-        
         selected_recipes = []
         total_portions = 0
         
@@ -401,12 +433,10 @@ def get_quick_dinner_menu():
             portions = int(recipe.get("portions", "1"))
             selected_recipes.append(recipe)
             total_portions += portions
-            
             if total_portions >= days:
                 break
         
         grocery_list = generate_grocery_list(selected_recipes)
-        app.logger.info(f'Selected {len(selected_recipes)} recipes for quick menu')
         
         return jsonify({
             "success": True,
@@ -417,14 +447,8 @@ def get_quick_dinner_menu():
                 "grocery_list": grocery_list
             }
         })
-        
     except Exception as e:
-        app.logger.error(f'Error generating quick menu: {str(e)}')
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.logger.info('Starting Flask API server')
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -10,29 +10,158 @@
       {{ errorMessage }}
     </div>
 
-    <!-- Ingredients Section (with fuzzy matching) -->
+    <!-- Ingredients Section (structured format) -->
     <div class="ingredient-input-section">
-      <h3>Ingredients</h3>
-      
-      <div class="ingredient-search">
-        <input
-          v-model="ingredientInput"
-          @input="onIngredientInput"
-          type="text"
-          placeholder="Start typing ingredient... (e.g., tomato, pasta, chicken)"
-          class="form-control"
-        />
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">Ingredients</h3>
+        <div class="tab-buttons">
+          <button
+            @click="inputMode = 'single'"
+            :class="['tab-btn', { active: inputMode === 'single' }]"
+            type="button"
+          >
+            ✏️ Single Entry
+          </button>
+          <button
+            @click="inputMode = 'bulk'"
+            :class="['tab-btn', { active: inputMode === 'bulk' }]"
+            type="button"
+          >
+            📋 Bulk Paste
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Import Mode -->
+      <div v-if="inputMode === 'bulk'" class="bulk-import-section">
+        <div class="form-group">
+          <label>Paste ingredient list (one per line)</label>
+          <textarea
+            v-model="bulkIngredientText"
+            rows="10"
+            placeholder="Paste ingredients here, e.g.:
+1 yellow onion ($0.70)
+▢ 2 cloves garlic ($0.08)
+1 Tbsp olive oil ($0.22)
+1 lb. ground beef ($4.98)"
+            class="form-control"
+            style="font-family: monospace; font-size: 14px;"
+          ></textarea>
+        </div>
+        
         <button
-          @click="addIngredient"
-          :disabled="!ingredientInput.trim()"
-          class="btn btn-success btn-small"
+          @click="parseBulkIngredients"
+          :disabled="!bulkIngredientText.trim() || parsing"
+          class="btn btn-primary"
+          type="button"
         >
-          ➕ Add
+          {{ parsing ? '⏳ Parsing...' : '🔍 Parse Ingredients' }}
         </button>
+
+        <!-- Preview parsed ingredients -->
+        <div v-if="parsedIngredients.length > 0" style="margin-top: 20px;">
+          <h4>Preview ({{ parsedIngredients.length }} ingredients)</h4>
+          <div class="parsed-preview">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f5f5f5; text-align: left;">
+                  <th style="padding: 8px; border: 1px solid #ddd;">Qty</th>
+                  <th style="padding: 8px; border: 1px solid #ddd;">Unit</th>
+                  <th style="padding: 8px; border: 1px solid #ddd;">Item</th>
+                  <th style="padding: 8px; border: 1px solid #ddd;">Original</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(ing, idx) in parsedIngredients" :key="idx">
+                  <td style="padding: 8px; border: 1px solid #ddd;">{{ ing.quantity || '—' }}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">{{ ing.unit || '—' }}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd;">{{ ing.item }}</td>
+                  <td style="padding: 8px; border: 1px solid #ddd; font-size: 12px; color: #666;">{{ ing.original }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button
+              @click="confirmBulkImport"
+              class="btn btn-success"
+              type="button"
+            >
+              ✅ Add All {{ parsedIngredients.length }} Ingredients
+            </button>
+            <button
+              @click="cancelBulkImport"
+              class="btn"
+              type="button"
+              style="background: #e0e0e0;"
+            >
+              ❌ Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single Entry Mode -->
+      <div v-else class="ingredient-form">
+        <div class="ingredient-fields">
+          <div class="form-group-inline">
+            <label>Quantity</label>
+            <input
+              v-model="currentIngredient.quantity"
+              type="text"
+              placeholder="1, 1/2, 2"
+              class="form-control-small"
+            />
+          </div>
+          
+          <div class="form-group-inline">
+            <label>Unit</label>
+            <input
+              v-model="currentIngredient.unit"
+              type="text"
+              placeholder="cup, tsp, lb"
+              class="form-control-small"
+              @input="onIngredientInput"
+            />
+          </div>
+          
+          <div class="form-group-inline flex-grow">
+            <label>Item *</label>
+            <input
+              v-model="currentIngredient.item"
+              type="text"
+              placeholder="yellow onion, garlic"
+              class="form-control"
+              @input="onIngredientInput"
+              required
+            />
+          </div>
+
+          <button
+            @click="addIngredient"
+            :disabled="!currentIngredient.item.trim()"
+            class="btn btn-success btn-small"
+            style="align-self: flex-end;"
+          >
+            ➕ Add
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px;">
+          <label>Original (optional)</label>
+          <input
+            v-model="currentIngredient.original"
+            type="text"
+            placeholder="Full description: 1 cup diced yellow onion"
+            class="form-control"
+          />
+        </div>
       </div>
 
       <!-- Fuzzy Matches -->
       <div v-if="fuzzyMatches.length > 0" class="fuzzy-matches">
+        <small>Similar ingredients:</small>
         <button
           v-for="(match, index) in fuzzyMatches"
           :key="index"
@@ -43,16 +172,12 @@
         </button>
       </div>
 
-      <div v-if="ingredientInput.length >= 2 && fuzzyMatches.length === 0" class="alert alert-info" style="margin-top: 10px;">
-        No similar ingredients found. "{{ ingredientInput }}" will be a new ingredient.
-      </div>
-
       <!-- Current Ingredients List -->
       <div v-if="ingredients.length > 0">
         <h4 style="margin-top: 20px; margin-bottom: 10px;">Added Ingredients:</h4>
         <ul class="ingredients-list">
           <li v-for="(ingredient, index) in ingredients" :key="index">
-            <span>{{ index + 1 }}. {{ ingredient }}</span>
+            <span>{{ index + 1 }}. {{ formatIngredient(ingredient) }}</span>
             <button @click="removeIngredient(index)" class="btn btn-danger btn-small">
               🗑️ Remove
             </button>
@@ -60,7 +185,7 @@
         </ul>
       </div>
       <div v-else class="alert alert-info" style="margin-top: 15px;">
-        No ingredients added yet. Start typing above to add ingredients.
+        No ingredients added yet. Fill in the fields above to add ingredients.
       </div>
     </div>
 
@@ -126,12 +251,23 @@ export default {
     })
 
     const ingredients = ref([])
-    const ingredientInput = ref('')
+    const currentIngredient = ref({
+      quantity: '',
+      unit: '',
+      item: '',
+      original: ''
+    })
     const allIngredients = ref([])
     const fuzzyMatches = ref([])
     const loading = ref(false)
     const successMessage = ref('')
     const errorMessage = ref('')
+    
+    // Bulk import state
+    const inputMode = ref('single')
+    const bulkIngredientText = ref('')
+    const parsedIngredients = ref([])
+    const parsing = ref(false)
 
     const loadAllIngredients = async () => {
       try {
@@ -142,7 +278,11 @@ export default {
         recipes.forEach(r => {
           if (r.ingredients) {
             r.ingredients.forEach(ing => {
-              ingredientsSet.add(ing.toLowerCase().trim())
+              // Handle both structured and string formats
+              const item = typeof ing === 'string' ? ing : (ing.item || ing.original || '')
+              if (item) {
+                ingredientsSet.add(item.toLowerCase().trim())
+              }
             })
           }
         })
@@ -184,7 +324,7 @@ export default {
     }
 
     const onIngredientInput = () => {
-      const input = ingredientInput.value.trim()
+      const input = currentIngredient.value.item.trim()
       
       if (input.length < 2) {
         fuzzyMatches.value = []
@@ -204,21 +344,53 @@ export default {
       fuzzyMatches.value = matches
     }
 
+    const formatIngredient = (ing) => {
+      if (typeof ing === 'string') return ing
+      
+      const parts = []
+      if (ing.quantity) parts.push(ing.quantity)
+      if (ing.unit) parts.push(ing.unit)
+      if (ing.item) parts.push(ing.item)
+      
+      return parts.length > 0 ? parts.join(' ') : ing.original || 'Unknown'
+    }
+
     const addIngredient = () => {
-      const ing = ingredientInput.value.trim()
-      if (ing && !ingredients.value.includes(ing)) {
-        ingredients.value.push(ing)
-        ingredientInput.value = ''
-        fuzzyMatches.value = []
+      const item = currentIngredient.value.item.trim()
+      if (!item) return
+
+      // Check for duplicates (case-insensitive comparison on item)
+      const isDuplicate = ingredients.value.some(ing => 
+        ing.item.toLowerCase() === item.toLowerCase()
+      )
+      
+      if (isDuplicate) {
+        return // Don't add duplicate
       }
+
+      const newIng = {
+        quantity: currentIngredient.value.quantity.trim(),
+        unit: currentIngredient.value.unit.trim(),
+        item: item,
+        original: currentIngredient.value.original.trim() || 
+                 `${currentIngredient.value.quantity} ${currentIngredient.value.unit} ${item}`.trim()
+      }
+
+      ingredients.value.push(newIng)
+      
+      // Reset form
+      currentIngredient.value = {
+        quantity: '',
+        unit: '',
+        item: '',
+        original: ''
+      }
+      fuzzyMatches.value = []
     }
 
     const addIngredientFromMatch = (match) => {
-      if (!ingredients.value.includes(match)) {
-        ingredients.value.push(match)
-        ingredientInput.value = ''
-        fuzzyMatches.value = []
-      }
+      currentIngredient.value.item = match
+      fuzzyMatches.value = []
     }
 
     const removeIngredient = (index) => {
@@ -263,7 +435,12 @@ export default {
           date: new Date().toISOString().split('T')[0]
         }
         ingredients.value = []
-        ingredientInput.value = ''
+        currentIngredient.value = {
+          quantity: '',
+          unit: '',
+          item: '',
+          original: ''
+        }
         fuzzyMatches.value = []
         
         // Reload ingredients for future searches
@@ -276,6 +453,54 @@ export default {
       }
     }
 
+    const parseBulkIngredients = async () => {
+      parsing.value = true
+      errorMessage.value = ''
+      
+      try {
+        const lines = bulkIngredientText.value
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+        
+        const response = await axios.post('/api/parse-ingredients', {
+          ingredients: lines
+        })
+        
+        parsedIngredients.value = response.data.parsed_ingredients || []
+        
+      } catch (error) {
+        errorMessage.value = `Parsing error: ${error.response?.data?.error || error.message}`
+      } finally {
+        parsing.value = false
+      }
+    }
+
+    const confirmBulkImport = () => {
+      const count = parsedIngredients.value.length
+      
+      // Add all parsed ingredients to the main list
+      parsedIngredients.value.forEach(ing => {
+        ingredients.value.push({
+          quantity: ing.quantity || '',
+          unit: ing.unit || '',
+          item: ing.item || '',
+          original: ing.original || ''
+        })
+      })
+      
+      // Reset bulk import state
+      bulkIngredientText.value = ''
+      parsedIngredients.value = []
+      inputMode.value = 'single'
+      successMessage.value = `✅ Added ${count} ingredients!`
+    }
+
+    const cancelBulkImport = () => {
+      parsedIngredients.value = []
+      bulkIngredientText.value = ''
+    }
+
     onMounted(() => {
       loadAllIngredients()
     })
@@ -283,17 +508,163 @@ export default {
     return {
       recipe,
       ingredients,
-      ingredientInput,
+      currentIngredient,
       fuzzyMatches,
       loading,
       successMessage,
       errorMessage,
+      inputMode,
+      bulkIngredientText,
+      parsedIngredients,
+      parsing,
       onIngredientInput,
+      formatIngredient,
       addIngredient,
       addIngredientFromMatch,
       removeIngredient,
-      submitRecipe
+      submitRecipe,
+      parseBulkIngredients,
+      confirmBulkImport,
+      cancelBulkImport
     }
   }
 }
 </script>
+
+<style scoped>
+.ingredient-form {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.ingredient-fields {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.form-group-inline {
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+
+.form-group-inline.flex-grow {
+  flex: 1;
+  min-width: 200px;
+}
+
+.form-group-inline label {
+  font-size: 0.9em;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-control-small {
+  padding: 8px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.fuzzy-matches {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.fuzzy-matches small {
+  color: #6c757d;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.fuzzy-match-btn {
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.fuzzy-match-btn:hover {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.ingredients-list {
+  list-style: none;
+  padding: 0;
+}
+
+.ingredients-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.ingredients-list li span {
+  flex: 1;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-bottom: none;
+}
+
+.tab-btn:hover {
+  background: #f8f9fa;
+}
+
+.tab-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.bulk-import-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.parsed-preview {
+  background: white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 10px;
+  overflow-x: auto;
+}
+</style>

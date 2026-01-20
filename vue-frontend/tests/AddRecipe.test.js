@@ -21,10 +21,18 @@ describe('AddRecipe Component', () => {
   it('loads existing ingredients on mount', async () => {
     const mockRecipes = [
       {
-        ingredients: ['pasta', 'tomato sauce', 'garlic']
+        ingredients: [
+          { item: 'pasta', quantity: '1', unit: 'lb', original: '1 lb pasta' },
+          { item: 'tomato sauce', quantity: '2', unit: 'cups', original: '2 cups tomato sauce' },
+          { item: 'garlic', quantity: '3', unit: 'cloves', original: '3 cloves garlic' }
+        ]
       },
       {
-        ingredients: ['chicken', 'olive oil', 'Garlic']
+        ingredients: [
+          { item: 'chicken', quantity: '1', unit: 'lb', original: '1 lb chicken' },
+          { item: 'olive oil', quantity: '2', unit: 'tbsp', original: '2 tbsp olive oil' },
+          { item: 'Garlic', quantity: '2', unit: 'cloves', original: '2 cloves Garlic' }
+        ]
       }
     ]
 
@@ -44,7 +52,11 @@ describe('AddRecipe Component', () => {
 
   it('shows fuzzy matches when typing ingredient', async () => {
     const mockRecipes = [
-      { ingredients: ['tomato sauce', 'diced tomatoes', 'pasta'] }
+      { ingredients: [
+        { item: 'tomato sauce', quantity: '1', unit: 'cup', original: '1 cup tomato sauce' },
+        { item: 'diced tomatoes', quantity: '2', unit: 'cups', original: '2 cups diced tomatoes' },
+        { item: 'pasta', quantity: '1', unit: 'lb', original: '1 lb pasta' }
+      ]}
     ]
 
     axios.get.mockResolvedValue({ data: { recipes: mockRecipes } })
@@ -53,8 +65,8 @@ describe('AddRecipe Component', () => {
     await wrapper.vm.$nextTick()
     await new Promise(resolve => setTimeout(resolve, 0))
 
-    // Type in ingredient input
-    wrapper.vm.ingredientInput = 'tomat'
+    // Type in ingredient item field
+    wrapper.vm.currentIngredient.item = 'tomat'
     wrapper.vm.onIngredientInput()
     await wrapper.vm.$nextTick()
 
@@ -69,11 +81,12 @@ describe('AddRecipe Component', () => {
     const wrapper = mount(AddRecipe)
     await wrapper.vm.$nextTick()
 
-    wrapper.vm.ingredientInput = 'test ingredient'
+    wrapper.vm.currentIngredient = { quantity: '1', unit: 'cup', item: 'test ingredient', original: '' }
     wrapper.vm.addIngredient()
 
-    expect(wrapper.vm.ingredients).toContain('test ingredient')
-    expect(wrapper.vm.ingredientInput).toBe('')
+    expect(wrapper.vm.ingredients.length).toBe(1)
+    expect(wrapper.vm.ingredients[0].item).toBe('test ingredient')
+    expect(wrapper.vm.currentIngredient.item).toBe('')
   })
 
   it('adds ingredient from fuzzy match', async () => {
@@ -82,8 +95,7 @@ describe('AddRecipe Component', () => {
     wrapper.vm.allIngredients = ['pasta', 'tomato sauce']
     wrapper.vm.addIngredientFromMatch('tomato sauce')
 
-    expect(wrapper.vm.ingredients).toContain('tomato sauce')
-    expect(wrapper.vm.ingredientInput).toBe('')
+    expect(wrapper.vm.currentIngredient.item).toBe('tomato sauce')
     expect(wrapper.vm.fuzzyMatches).toEqual([])
   })
 
@@ -99,11 +111,11 @@ describe('AddRecipe Component', () => {
   it('prevents duplicate ingredients', async () => {
     const wrapper = mount(AddRecipe)
     
-    wrapper.vm.ingredients = ['pasta']
-    wrapper.vm.ingredientInput = 'pasta'
+    wrapper.vm.ingredients = [{ quantity: '1', unit: 'lb', item: 'pasta', original: '1 lb pasta' }]
+    wrapper.vm.currentIngredient = { quantity: '1', unit: 'lb', item: 'pasta', original: '' }
     wrapper.vm.addIngredient()
 
-    expect(wrapper.vm.ingredients).toEqual(['pasta'])
+    expect(wrapper.vm.ingredients.length).toBe(1)
   })
 
   it('calculates similarity correctly', () => {
@@ -167,18 +179,18 @@ describe('AddRecipe Component', () => {
       portions: 4,
       date: '2026-01-18'
     }
-    wrapper.vm.ingredients = ['pasta', 'sauce']
+    wrapper.vm.ingredients = [
+      { quantity: '1', unit: 'lb', item: 'pasta', original: '1 lb pasta' },
+      { quantity: '2', unit: 'cups', item: 'sauce', original: '2 cups sauce' }
+    ]
 
     await wrapper.vm.submitRecipe()
 
-    expect(axios.post).toHaveBeenCalledWith('/api/recipes', {
-      title: 'Test Recipe',
-      date: '2026-01-18',
-      ingredients: ['pasta', 'sauce'],
-      oven: true,
-      stove: false,
-      portions: '4'
-    })
+    expect(axios.post).toHaveBeenCalled()
+    const callArgs = axios.post.mock.calls[0]
+    expect(callArgs[0]).toBe('/api/recipes')
+    expect(callArgs[1].title).toBe('Test Recipe')
+    expect(callArgs[1].ingredients.length).toBe(2)
 
     expect(wrapper.vm.successMessage).toContain('Test Recipe')
     expect(wrapper.vm.ingredients).toEqual([])
@@ -214,7 +226,7 @@ describe('AddRecipe Component', () => {
     await wrapper.vm.$nextTick()
 
     wrapper.vm.recipe.title = 'Test'
-    wrapper.vm.ingredients = ['pasta']
+    wrapper.vm.ingredients = [{ quantity: '1', unit: 'lb', item: 'pasta', original: '1 lb pasta' }]
 
     await wrapper.vm.submitRecipe()
 

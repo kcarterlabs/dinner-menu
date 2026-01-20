@@ -58,3 +58,6 @@ dist/
 # Deployment scripts (contain environment-specific config)
 deploy-traefik.sh
 deploy.sh
+
+# MongoDB data directory (database files should never be in git)
+data/

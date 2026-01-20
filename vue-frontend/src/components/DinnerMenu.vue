@@ -77,7 +77,7 @@
           <strong>Ingredients:</strong>
           <ul style="margin-left: 20px; margin-top: 8px;">
             <li v-for="(ingredient, idx) in recipe.ingredients" :key="idx">
-              {{ ingredient }}
+              {{ formatIngredient(ingredient) }}
             </li>
           </ul>
         </div>
@@ -175,6 +175,26 @@ export default {
       }
     }
 
+    const formatIngredient = (ingredient) => {
+      // Handle both structured {quantity, unit, item} and legacy string formats
+      if (typeof ingredient === 'string') {
+        return ingredient
+      }
+      
+      // Use the original field if available (preserves user's exact input)
+      if (ingredient.original) {
+        return ingredient.original
+      }
+      
+      // Otherwise construct from structured fields
+      const parts = []
+      if (ingredient.quantity) parts.push(ingredient.quantity)
+      if (ingredient.unit) parts.push(ingredient.unit)
+      if (ingredient.item) parts.push(ingredient.item)
+      
+      return parts.join(' ') || 'Unknown ingredient'
+    }
+
     const downloadGroceryList = () => {
       // Create formatted text content
       let content = '🛒 Shopping List\n'
@@ -209,7 +229,8 @@ export default {
       errorMessage,
       generateMenu,
       rerollRecipe,
-      downloadGroceryList
+      downloadGroceryList,
+      formatIngredient
     }
   }
 }

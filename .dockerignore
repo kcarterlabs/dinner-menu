@@ -28,8 +28,14 @@ pyvenv.cfg
 .DS_Store
 Thumbs.db
 
+# MongoDB data directories (never include in image)
+data/
+data/mongodb/
+data/mongodb-config/
+
 # Backups (optionally exclude if you don't want old backups in the image)
-# backups/
+backups/
+*.tar.gz
 
 # Docker
 Dockerfile

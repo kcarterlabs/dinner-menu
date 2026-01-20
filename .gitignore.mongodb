@@ -1,0 +1,7 @@
+# MongoDB data directory
+data/mongodb/
+data/mongodb-config/
+
+# Backup files
+*.tar.gz
+mongodb-backup-*.tar.gz

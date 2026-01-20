@@ -1,4 +1,22 @@
 services:
+  mongodb:
+    image: mongo:7
+    container_name: dinner-menu-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - ./data/mongodb:/data/db
+      - ./data/mongodb-config:/data/configdb
+    networks:
+      - dinner-menu-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   traefik:
     image: traefik:v2.11
     container_name: dinner-menu-traefik
@@ -50,12 +68,17 @@ services:
     restart: unless-stopped
     environment:
       - RAPID_API_FORECAST_KEY=${RAPID_API_FORECAST_KEY}
+      - MONGODB_URI=mongodb://admin:${MONGO_PASSWORD}@mongodb:27017/
+      - MONGODB_DATABASE=dinner_menu
     volumes:
       - ./recipes.json:/app/recipes.json
       - ./backups:/app/backups
       - ./logs:/app/logs
     networks:
       - dinner-menu-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`dinner-menu.kcarterlabs.tech`) && PathPrefix(`/api`)"

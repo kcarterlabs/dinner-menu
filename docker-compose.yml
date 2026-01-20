@@ -1,4 +1,24 @@
 services:
+  mongodb:
+    image: mongo:7
+    container_name: dinner-menu-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme123}
+    volumes:
+      - ./data/mongodb:/data/db
+      - ./data/mongodb-config:/data/configdb
+    networks:
+      - dinner-menu-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
     container_name: dinner-menu-api
@@ -6,6 +26,8 @@ services:
       - "5000:5000"
     environment:
       - RAPID_API_FORECAST_KEY=${RAPID_API_FORECAST_KEY}
+      - MONGO_PASSWORD=${MONGO_PASSWORD:-changeme123}
+      - MONGODB_DATABASE=dinner_menu
     volumes:
       - ./recipes.json:/app/recipes.json
       - ./backups:/app/backups
@@ -13,6 +35,9 @@ services:
     command: python app.py
     networks:
       - dinner-menu-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
 
   # DEPRECATED: Streamlit frontend (replaced by Vue.js)
