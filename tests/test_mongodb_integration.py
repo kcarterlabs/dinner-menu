@@ -121,15 +121,17 @@ class TestRecipeDB(unittest.TestCase):
     
     def test_aggregate_ingredients(self):
         """Test ingredient aggregation with structured format"""
-        from db import aggregate_ingredients
+        from db import RecipeDB
+        recipe_db = RecipeDB()
         
-        aggregated = aggregate_ingredients()
+        aggregated = recipe_db.aggregate_ingredients()
         self.assertIsInstance(aggregated, list, "Should return a list of aggregated ingredients")
         
         # If there are aggregated ingredients, verify format
         if len(aggregated) > 0:
-            # Should be formatted as strings like "1.5 cup flour"
-            self.assertIsInstance(aggregated[0], str, "Aggregated ingredients should be strings")
+            # Should be dictionaries with ingredient, item, quantity, unit, count, recipes
+            self.assertIsInstance(aggregated[0], dict, "Aggregated ingredients should be dicts")
+            self.assertIn('ingredient', aggregated[0], "Should have 'ingredient' field")
 
 
 class TestAPIMongoDBIntegration(unittest.TestCase):
@@ -147,7 +149,7 @@ class TestAPIMongoDBIntegration(unittest.TestCase):
         from db import RecipeDB
         
         recipe_db = RecipeDB()
-        initial_count = recipe_db.db.recipes.count_documents({})
+        initial_count = recipe_db.collection.count_documents({})
         
         # Add a test recipe via API
         test_recipe = {
@@ -173,11 +175,11 @@ class TestAPIMongoDBIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 201, "Should successfully create recipe")
         
         # Verify it was saved to MongoDB
-        new_count = recipe_db.db.recipes.count_documents({})
+        new_count = recipe_db.collection.count_documents({})
         self.assertEqual(new_count, initial_count + 1, "Recipe should be saved to MongoDB")
         
         # Clean up - find and delete the test recipe
-        test_recipe_in_db = recipe_db.db.recipes.find_one({"title": test_recipe["title"]})
+        test_recipe_in_db = recipe_db.collection.find_one({"title": test_recipe["title"]})
         if test_recipe_in_db:
             recipe_db.delete_recipe(str(test_recipe_in_db['_id']))
     
