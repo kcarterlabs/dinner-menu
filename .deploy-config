@@ -1,0 +1,103 @@
+# Automated Deployment Configuration
+# Customize deployment criteria and behavior
+
+# ============================================
+# DEPLOYMENT CRITERIA
+# ============================================
+
+# Require tests to pass before deployment
+REQUIRE_TESTS=true
+
+# Minimum test pass rate (0-100)
+MIN_TEST_PASS_RATE=90
+
+# Require all containers to be healthy
+REQUIRE_HEALTHY_CONTAINERS=true
+
+# Maximum disk usage percentage before deployment warning
+MAX_DISK_USAGE=90
+
+# ============================================
+# HEALTH CHECK CONFIGURATION
+# ============================================
+
+# Number of health check retries
+HEALTH_CHECK_RETRIES=10
+
+# Interval between health checks (seconds)
+HEALTH_CHECK_INTERVAL=5
+
+# Health check timeout (seconds)
+HEALTH_CHECK_TIMEOUT=5
+
+# ============================================
+# ROLLBACK CONFIGURATION
+# ============================================
+
+# Enable automatic rollback on failure
+ROLLBACK_ENABLED=true
+
+# Number of backups to keep
+BACKUP_RETENTION_COUNT=5
+
+# Automatically rollback if health checks fail
+AUTO_ROLLBACK_ON_HEALTH_FAILURE=true
+
+# ============================================
+# DEPLOYMENT BEHAVIOR
+# ============================================
+
+# Pull latest code from git before deployment
+GIT_PULL=true
+
+# Force rebuild Docker images (no cache)
+FORCE_REBUILD=true
+
+# Wait time after container start (seconds)
+STARTUP_WAIT_TIME=15
+
+# ============================================
+# NOTIFICATION SETTINGS (future)
+# ============================================
+
+# Enable deployment notifications
+NOTIFICATIONS_ENABLED=false
+
+# Notification webhook URL (Slack, Discord, etc.)
+NOTIFICATION_WEBHOOK_URL=""
+
+# ============================================
+# MONITORING ENDPOINTS
+# ============================================
+
+# API health endpoint
+API_HEALTH_ENDPOINT="http://localhost:5000/api/health"
+
+# Frontend endpoint
+FRONTEND_ENDPOINT="http://localhost:5173/"
+
+# Additional endpoints to check
+# Format: "endpoint1,endpoint2,endpoint3"
+ADDITIONAL_ENDPOINTS="http://localhost:5000/api/recipes"
+
+# ============================================
+# DEPLOYMENT SCHEDULE (for cron)
+# ============================================
+
+# Example cron schedule: "0 2 * * *" (daily at 2 AM)
+# Leave empty for manual deployment only
+DEPLOYMENT_SCHEDULE=""
+
+# ============================================
+# ADVANCED SETTINGS
+# ============================================
+
+# Deploy only if specific files changed
+WATCH_PATTERNS=""
+# Example: "app.py,db.py,docker-compose.yml,vue-frontend/src/**"
+
+# Skip deployment if only documentation changed
+SKIP_ON_DOCS_ONLY=true
+
+# Documentation file patterns
+DOCS_PATTERNS="*.md,docs/**"
