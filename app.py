@@ -337,6 +337,23 @@ def update_recipe_image(recipe_id):
         data = request.get_json()
         image_data = data.get('image')
         
+        # Allow null/None to remove image
+        if image_data is None:
+            if USE_MONGODB:
+                if recipe_db.update_recipe(recipe_id, {"image": None}):
+                    return jsonify({"success": True, "message": "Image removed"})
+                else:
+                    return jsonify({"success": False, "error": "Recipe not found"}), 404
+            else:
+                recipes = load_recipes()
+                recipe_index = next((i for i, r in enumerate(recipes) if r.get('_id') == recipe_id), None)
+                if recipe_index is None:
+                    return jsonify({"success": False, "error": "Recipe not found"}), 404
+                
+                recipes[recipe_index]['image'] = None
+                save_recipes(recipes)
+                return jsonify({"success": True, "message": "Image removed"})
+        
         if not image_data:
             return jsonify({"success": False, "error": "No image data provided"}), 400
         

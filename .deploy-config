@@ -9,7 +9,7 @@
 REQUIRE_TESTS=true
 
 # Minimum test pass rate (0-100)
-MIN_TEST_PASS_RATE=90
+MIN_TEST_PASS_RATE=100
 
 # Require all containers to be healthy
 REQUIRE_HEALTHY_CONTAINERS=true

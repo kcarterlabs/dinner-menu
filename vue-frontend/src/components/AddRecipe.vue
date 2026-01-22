@@ -231,27 +231,54 @@
       <!-- Image Upload Section -->
       <div class="form-group">
         <label>Recipe Image (optional)</label>
-        <input
-          type="file"
-          accept="image/*"
-          @change="handleImageUpload"
-          ref="imageInput"
-          style="margin-top: 8px;"
-        />
-        <div v-if="imagePreview" style="margin-top: 15px;">
-          <img
-            :src="imagePreview"
-            alt="Recipe preview"
-            style="max-width: 300px; max-height: 300px; border-radius: 8px; object-fit: cover;"
+        <div
+          ref="dropZone"
+          @drop="handleDrop"
+          @dragover="handleDragOver"
+          @dragenter="handleDragOver"
+          @dragleave="handleDragLeave"
+          @click="focusDropZone"
+          :class="['image-drop-zone', { 'dragging': isDragging }]"
+          tabindex="0"
+        >
+          <input
+            type="file"
+            accept="image/*"
+            @change="handleImageUpload"
+            ref="imageInput"
+            style="display: none;"
           />
-          <button
-            @click="removeImage"
-            type="button"
-            class="btn btn-small"
-            style="display: block; margin-top: 10px; background: #ff6b6b; color: white;"
-          >
-            🗑️ Remove Image
-          </button>
+          <div v-if="imagePreview" style="margin-top: 10px;">
+            <img
+              :src="imagePreview"
+              alt="Recipe preview"
+              style="max-width: 300px; max-height: 300px; border-radius: 8px; object-fit: cover;"
+            />
+            <button
+              @click="removeImage"
+              type="button"
+              class="btn btn-small"
+              style="display: block; margin-top: 10px; background: #ff6b6b; color: white;"
+            >
+              🗑️ Remove Image
+            </button>
+          </div>
+          <div v-else class="drop-zone-content">
+            <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
+            <button
+              @click.stop="imageInput.click()"
+              type="button"
+              class="btn btn-small"
+              style="background: #667eea; color: white; margin-bottom: 10px;"
+            >
+              📁 Choose File
+            </button>
+            <p style="margin: 0; color: #666; font-size: 14px;">
+              or drag & drop an image here<br/>
+              or click here and press Ctrl+V to paste
+            </p>
+            <p style="margin-top: 8px; color: #999; font-size: 12px;">Max 2MB</p>
+          </div>
         </div>
       </div>
 
@@ -294,6 +321,8 @@ export default {
     const imagePreview = ref(null)
     const imageData = ref(null)
     const imageInput = ref(null)
+    const isDragging = ref(false)
+    const dropZone = ref(null)
     
     // Bulk import state
     const inputMode = ref('single')
@@ -455,6 +484,8 @@ export default {
           image: imageData.value  // Include base64 image data
         }
 
+        console.log('Submitting recipe with image:', imageData.value ? `${imageData.value.substring(0, 50)}... (${imageData.value.length} chars)` : 'null')
+
         await axios.post('/api/recipes', recipeData)
         
         successMessage.value = `✅ Recipe "${recipe.value.title}" added successfully!`
@@ -539,28 +570,150 @@ export default {
       bulkIngredientText.value = ''
     }
 
-    const handleImageUpload = (event) => {
-      const file = event.target.files[0]
-      if (!file) return
+    const resizeImage = (file, maxWidth = 1200, maxHeight = 1200) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            let width = img.width
+            let height = img.height
 
+            // Calculate new dimensions while maintaining aspect ratio
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height)
+              width = width * ratio
+              height = height * ratio
+            }
+
+            // Create canvas and resize
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+
+            // Try different quality levels until under 2MB
+            let quality = 0.9
+            let dataUrl = canvas.toDataURL('image/jpeg', quality)
+            
+            while (dataUrl.length > 2 * 1024 * 1024 * 1.37 && quality > 0.1) {
+              quality -= 0.1
+              dataUrl = canvas.toDataURL('image/jpeg', quality)
+            }
+
+            console.log('Resized image:', width, 'x', height, 'quality:', quality.toFixed(1))
+            resolve(dataUrl)
+          }
+          img.onerror = reject
+          img.src = e.target.result
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+    }
+
+    const processImageFile = async (file) => {
+      console.log('Processing image file:', file.name, file.type, file.size)
       // Validate file type
       if (!file.type.startsWith('image/')) {
         errorMessage.value = 'Please select an image file'
         return
       }
 
-      // Validate file size (max 2MB)
+      // If image is too large, resize it
       if (file.size > 2 * 1024 * 1024) {
-        errorMessage.value = 'Image size must be less than 2MB'
-        return
+        console.log('Image too large, resizing...')
+        errorMessage.value = 'Resizing large image...'
+        try {
+          const resizedDataUrl = await resizeImage(file)
+          imagePreview.value = resizedDataUrl
+          imageData.value = resizedDataUrl
+          errorMessage.value = ''
+          isDragging.value = false
+          console.log('Image resized successfully')
+          return
+        } catch (error) {
+          console.error('Error resizing image:', error)
+          errorMessage.value = 'Error resizing image. Please try a smaller file.'
+          return
+        }
       }
 
       const reader = new FileReader()
       reader.onload = (e) => {
         imagePreview.value = e.target.result
-        imageData.value = e.target.result  // Store base64 data
+        imageData.value = e.target.result
+        console.log('Image loaded, data length:', e.target.result?.length)
+        errorMessage.value = ''
+        isDragging.value = false
       }
       reader.readAsDataURL(file)
+    }
+
+    const handleImageUpload = (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+      processImageFile(file)
+    }
+
+    const handleDragOver = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      console.log('DRAGOVER EVENT')
+      isDragging.value = true
+    }
+
+    const handleDragLeave = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      console.log('DRAGLEAVE EVENT')
+      isDragging.value = false
+    }
+
+    const handleDrop = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      console.log('DROP EVENT:', event.dataTransfer?.files)
+      isDragging.value = false
+      const file = event.dataTransfer?.files[0]
+      if (file) {
+        console.log('File dropped:', file.name, file.type, file.size)
+        processImageFile(file)
+      } else {
+        console.log('No file in drop event')
+      }
+    }
+
+    const focusDropZone = () => {
+      if (dropZone.value && !imagePreview.value) {
+        dropZone.value.focus()
+        console.log('Drop zone focused - you can now paste with Ctrl+V')
+      }
+    }
+
+    const handlePaste = (event) => {
+      event.preventDefault()
+      console.log('PASTE EVENT triggered!', event.clipboardData)
+      const items = event.clipboardData?.items
+      if (!items) {
+        console.log('No clipboard items')
+        return
+      }
+
+      console.log('Clipboard items count:', items.length)
+      for (let i = 0; i < items.length; i++) {
+        console.log('Item', i, ':', items[i].type, items[i].kind)
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile()
+          if (file) {
+            console.log('Pasted image file:', file.name, file.type, file.size)
+            processImageFile(file)
+            return
+          }
+        }
+      }
+      console.log('No image found in clipboard')
     }
 
     const removeImage = () => {
@@ -571,8 +724,101 @@ export default {
       }
     }
 
+    const fetchImageFromUrl = async (url) => {
+      try {
+        console.log('Fetching image from URL:', url)
+        errorMessage.value = ''
+        
+        // Fetch the image as a blob
+        const response = await fetch(url)
+        if (!response.ok) throw new Error('Failed to fetch image')
+        
+        const blob = await response.blob()
+        console.log('Fetched blob:', blob.type, blob.size)
+        
+        // Convert blob to File
+        const file = new File([blob], 'dropped-image.jpg', { type: blob.type })
+        processImageFile(file)
+      } catch (error) {
+        console.error('Error fetching image from URL:', error)
+        errorMessage.value = 'Could not load image from URL. Try downloading it first or use a different image.'
+      }
+    }
+
     onMounted(() => {
+      console.log('=== AddRecipe component mounted ===')
+      console.log('dropZone ref:', dropZone.value)
+      
       loadAllIngredients()
+      
+      // Handle drag and drop at document level
+      const handleDocumentDragOver = (e) => {
+        e.preventDefault()
+        // Check if dragging over the drop zone
+        if (dropZone.value && dropZone.value.contains(e.target)) {
+          isDragging.value = true
+        }
+      }
+      
+      const handleDocumentDrop = (e) => {
+        e.preventDefault()
+        console.log('Document drop detected', e.target)
+        
+        // Check if dropped on the drop zone
+        if (dropZone.value && dropZone.value.contains(e.target)) {
+          console.log('Dropped on drop zone!')
+          
+          // Try to get file first
+          const file = e.dataTransfer?.files[0]
+          if (file) {
+            console.log('File dropped:', file.name, file.type, file.size)
+            processImageFile(file)
+          } else {
+            // Check for image URL (dragged from browser)
+            const url = e.dataTransfer?.getData('text/html')
+            const urlText = e.dataTransfer?.getData('text/uri-list') || e.dataTransfer?.getData('text/plain')
+            
+            console.log('No file, checking for URL:', { url: url?.substring(0, 100), urlText })
+            
+            if (urlText && (urlText.startsWith('http://') || urlText.startsWith('https://'))) {
+              console.log('Loading image from URL:', urlText)
+              fetchImageFromUrl(urlText)
+            } else if (url) {
+              // Extract img src from HTML
+              const match = url.match(/<img[^>]+src="([^">]+)"/)
+              if (match && match[1]) {
+                console.log('Loading image from extracted URL:', match[1])
+                fetchImageFromUrl(match[1])
+              }
+            }
+          }
+        }
+        isDragging.value = false
+      }
+      
+      const handleDocumentDragLeave = (e) => {
+        // Only reset if leaving the drop zone
+        if (dropZone.value && !dropZone.value.contains(e.target)) {
+          isDragging.value = false
+        }
+      }
+      
+      document.addEventListener('dragover', handleDocumentDragOver)
+      document.addEventListener('drop', handleDocumentDrop)
+      document.addEventListener('dragleave', handleDocumentDragLeave)
+      
+      // Add paste listener to drop zone
+      if (dropZone.value) {
+        console.log('Attaching paste event listener to drop zone')
+        dropZone.value.addEventListener('paste', handlePaste)
+        
+        // Also try keydown to debug
+        dropZone.value.addEventListener('keydown', (e) => {
+          console.log('Key pressed in drop zone:', e.key, e.ctrlKey, e.metaKey)
+        })
+      } else {
+        console.error('Drop zone ref not found!')
+      }
     })
 
     return {
@@ -590,6 +836,7 @@ export default {
       imagePreview,
       imageData,
       imageInput,
+      dropZone,
       onIngredientInput,
       formatIngredient,
       addIngredient,
@@ -600,7 +847,13 @@ export default {
       confirmBulkImport,
       cancelBulkImport,
       handleImageUpload,
-      removeImage
+      handleDragOver,
+      handleDragLeave,
+      handleDrop,
+      focusDropZone,
+      handlePaste,
+      removeImage,
+      isDragging
     }
   }
 }
@@ -741,5 +994,39 @@ export default {
   padding: 15px;
   margin-top: 10px;
   overflow-x: auto;
+}
+
+.image-drop-zone {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  background: #f8f9fa;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin-top: 8px;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.image-drop-zone:hover,
+.image-drop-zone:focus {
+  border-color: #667eea;
+  background: #f0f4ff;
+  outline: none;
+}
+
+.image-drop-zone.dragging {
+  border-color: #667eea;
+  background: #e6f2ff;
+  border-style: solid;
+}
+
+.drop-zone-content {
+  padding: 10px;
+  width: 100%;
 }
 </style>
