@@ -17,6 +17,7 @@ CORS(app)
 # Configuration
 RECIPES_FILE = "recipes.json"
 BACKUP_DIR = "backups"
+WEATHER_LOCATION = os.getenv('WEATHER_LOCATION', 'Spokane')
 
 # Logging
 if not os.path.exists('logs'):
@@ -88,7 +89,7 @@ def get_weather_forecast(days):
     response = requests.get(url, headers={
         "x-rapidapi-key": api_key,
         "x-rapidapi-host": "weatherapi-com.p.rapidapi.com"
-    }, params={"q": "Spokane", "days": days})
+    }, params={"q": WEATHER_LOCATION, "days": days})
     response.raise_for_status()
     data = response.json()
     
