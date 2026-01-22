@@ -1,13 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import axios from 'axios'
 import App from '../src/App.vue'
 import HomePage from '../src/components/HomePage.vue'
 import RecipesList from '../src/components/RecipesList.vue'
 import AddRecipe from '../src/components/AddRecipe.vue'
 import DinnerMenu from '../src/components/DinnerMenu.vue'
 
+// Mock axios globally
+vi.mock('axios')
+
 describe('App Component', () => {
   let wrapper
+
+  beforeEach(() => {
+    // Reset all mocks before each test
+    vi.clearAllMocks()
+    
+    // Mock axios.get to prevent real API calls
+    axios.get.mockResolvedValue({ 
+      data: { 
+        recipes: [] 
+      } 
+    })
+  })
 
   afterEach(() => {
     if (wrapper) {
