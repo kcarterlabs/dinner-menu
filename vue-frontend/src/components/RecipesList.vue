@@ -18,36 +18,50 @@
         :key="recipe._id || index"
         class="recipe-card"
       >
-        <h3>{{ recipe.title }}</h3>
-        
-        <div style="margin: 10px 0;">
-          <span v-if="recipe.oven" class="badge badge-oven">🔥 Oven</span>
-          <span v-if="recipe.stove" class="badge badge-stove">🍳 Stove</span>
-          <span class="badge" style="background: #e6f2ff; color: #667eea;">
-            👥 {{ recipe.portions }} portions
-          </span>
-        </div>
+        <div style="display: flex; gap: 20px;">
+          <!-- Left side: Recipe details -->
+          <div style="flex: 1;">
+            <h3>{{ recipe.title }}</h3>
+            
+            <div style="margin: 10px 0;">
+              <span v-if="recipe.oven" class="badge badge-oven">🔥 Oven</span>
+              <span v-if="recipe.stove" class="badge badge-stove">🍳 Stove</span>
+              <span class="badge" style="background: #e6f2ff; color: #667eea;">
+                👥 {{ recipe.portions }} portions
+              </span>
+            </div>
 
-        <div style="margin-top: 15px;">
-          <strong>Ingredients:</strong>
-          <ul style="margin-left: 20px; margin-top: 8px;">
-            <li v-for="(ingredient, idx) in recipe.ingredients" :key="idx">
-              {{ formatIngredient(ingredient) }}
-            </li>
-          </ul>
-        </div>
+            <div style="margin-top: 15px;">
+              <strong>Ingredients:</strong>
+              <ul style="margin-left: 20px; margin-top: 8px;">
+                <li v-for="(ingredient, idx) in recipe.ingredients" :key="idx">
+                  {{ formatIngredient(ingredient) }}
+                </li>
+              </ul>
+            </div>
 
-        <div style="margin-top: 10px; color: #666; font-size: 14px;">
-          📅 Added: {{ recipe.date }}
-        </div>
+            <div style="margin-top: 10px; color: #666; font-size: 14px;">
+              📅 Added: {{ recipe.date }}
+            </div>
 
-        <button
-          @click="deleteRecipe(recipe._id)"
-          class="btn btn-danger btn-small"
-          style="margin-top: 15px;"
-        >
-          🗑️ Delete Recipe
-        </button>
+            <button
+              @click="deleteRecipe(recipe._id)"
+              class="btn btn-danger btn-small"
+              style="margin-top: 15px;"
+            >
+              🗑️ Delete Recipe
+            </button>
+          </div>
+
+          <!-- Right side: Recipe image -->
+          <div v-if="recipe.image" style="flex: 0 0 250px;">
+            <img
+              :src="recipe.image"
+              :alt="recipe.title"
+              style="width: 100%; height: 250px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -11,7 +11,7 @@ sys.path.insert(0, parent_dir)
 
 # Import the module - using importlib to handle the hyphen in filename
 import importlib.util
-spec = importlib.util.spec_from_file_location("add_recipe", os.path.join(parent_dir, "add-recipe.py"))
+spec = importlib.util.spec_from_file_location("add_recipe", os.path.join(parent_dir, "scripts", "add-recipe.py"))
 add_recipe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(add_recipe)
 

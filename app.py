@@ -276,7 +276,8 @@ def add_recipe():
             "ingredients": processed_ingredients,
             "oven": data.get('oven', False),
             "stove": data.get('stove', False),
-            "portions": data.get('portions', "1")
+            "portions": data.get('portions', "1"),
+            "image": data.get('image')  # Base64 encoded image string
         }
         
         # Save to MongoDB if available
@@ -327,6 +328,40 @@ def delete_recipe(recipe_id):
             return jsonify({"success": True, "message": "Deleted", "deleted_recipe": deleted})
     except Exception as e:
         app.logger.error(f"Error deleting recipe {recipe_id}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/recipes/<recipe_id>/image', methods=['PUT'])
+def update_recipe_image(recipe_id):
+    """Update or add image to existing recipe"""
+    try:
+        data = request.get_json()
+        image_data = data.get('image')
+        
+        if not image_data:
+            return jsonify({"success": False, "error": "No image data provided"}), 400
+        
+        # Validate base64 image (basic check)
+        if not image_data.startswith('data:image/'):
+            return jsonify({"success": False, "error": "Invalid image format"}), 400
+        
+        if USE_MONGODB:
+            # Update MongoDB
+            if recipe_db.update_recipe(recipe_id, {"image": image_data}):
+                return jsonify({"success": True, "message": "Image updated"})
+            else:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+        else:
+            # Fallback to JSON file
+            recipes = load_recipes()
+            recipe_index = next((i for i, r in enumerate(recipes) if r.get('_id') == recipe_id), None)
+            if recipe_index is None:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+            
+            recipes[recipe_index]['image'] = image_data
+            save_recipes(recipes)
+            return jsonify({"success": True, "message": "Image updated"})
+    except Exception as e:
+        app.logger.error(f"Error updating recipe image {recipe_id}: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/parse-ingredients', methods=['POST'])

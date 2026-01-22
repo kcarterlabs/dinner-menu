@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY streamlit_app.py .
+COPY scripts/deprecated/streamlit_app.py .
 
 # Expose Streamlit port
 EXPOSE 8501

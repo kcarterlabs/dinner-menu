@@ -1,0 +1,1222 @@
+[
+    {
+        "_id": "696e4070c569745092282285",
+        "title": "Hearty Dutch Oven Beef Stew",
+        "date": "2025-06-15",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "medium yellow onion, diced",
+                "original": "1 medium yellow onion, diced"
+            },
+            {
+                "quantity": "5",
+                "unit": "cloves",
+                "item": "garlic, minced",
+                "original": "5 cloves garlic, minced"
+            },
+            {
+                "quantity": "3",
+                "unit": "",
+                "item": "large carrots, peeled and chopped",
+                "original": "3 large carrots, peeled and chopped"
+            },
+            {
+                "quantity": "1",
+                "unit": "teaspoon",
+                "item": "fresh thyme, roughly chopped",
+                "original": "1 teaspoon fresh thyme, roughly chopped"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "tomato paste",
+                "original": "2 tablespoons tomato paste"
+            },
+            {
+                "quantity": "2",
+                "unit": "teaspoons",
+                "item": "worcestershire sauce",
+                "original": "2 teaspoons Worcestershire sauce"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "\u00bd cup red wine - or beef broth",
+                "original": "\u00bd cup red wine - or beef broth"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "\u00bc cup all-purpose flour, plus more as needed",
+                "original": "\u00bc cup all-purpose flour, plus more as needed"
+            },
+            {
+                "quantity": "4",
+                "unit": "cups",
+                "item": "beef broth, plus more as needed",
+                "original": "4 cups beef broth, plus more as needed"
+            },
+            {
+                "quantity": "3",
+                "unit": "",
+                "item": "medium yukon gold potatoes, peeled and diced - see note below",
+                "original": "3 medium Yukon gold potatoes, peeled and diced - see note below"
+            },
+            {
+                "quantity": "2",
+                "unit": "",
+                "item": "dried bay leaves",
+                "original": "2 dried bay leaves"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "Chopped parsley",
+                "original": "Chopped parsley"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "Olive oil",
+                "original": "Olive oil"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "Salt and pepper to taste",
+                "original": "Salt and pepper to taste"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "Frozen or fresh green peas - optional",
+                "original": "Frozen or fresh green peas - optional"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282286",
+        "title": "Ham Help",
+        "date": "2025-06-15",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "yellow onion",
+                "original": "1 yellow onion"
+            },
+            {
+                "quantity": "2",
+                "unit": "cloves",
+                "item": "garlic",
+                "original": "2 cloves garlic"
+            },
+            {
+                "quantity": "1",
+                "unit": "tbsp",
+                "item": "olive oil",
+                "original": "1 Tbsp olive oil"
+            },
+            {
+                "quantity": "1",
+                "unit": "lb",
+                "item": ". ground beef",
+                "original": "1 lb. ground beef"
+            },
+            {
+                "quantity": "2",
+                "unit": "tbsp",
+                "item": "all-purpose flour",
+                "original": "2 Tbsp all-purpose flour"
+            },
+            {
+                "quantity": "1",
+                "unit": "tbsp",
+                "item": "chili powder",
+                "original": "1 Tbsp chili powder"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "tsp",
+                "item": "smoked paprika",
+                "original": "1/2 tsp smoked paprika"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "tsp",
+                "item": "garlic powder",
+                "original": "1/2 tsp garlic powder"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "tsp",
+                "item": "dried oregan",
+                "original": "1/2 tsp dried oregan"
+            },
+            {
+                "quantity": "8",
+                "unit": "oz",
+                "item": ". tomato sauce",
+                "original": "8 oz. tomato sauce"
+            },
+            {
+                "quantity": "3",
+                "unit": "cups",
+                "item": "beef broth",
+                "original": "3 cups beef broth"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "lb",
+                "item": ". uncooked macaroni",
+                "original": "1/2 lb. uncooked macaroni"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "shredded cheddar",
+                "original": "1 cup shredded cheddar"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 2,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282287",
+        "title": "Minestrone Soup",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "olive oil",
+                "original": "2 tablespoons olive oil"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "medium yellow onion",
+                "original": "1 medium yello onion"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "celery ribs",
+                "original": "5 celery ribs"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "ground pepper",
+                "original": "ground pepper"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "garlic cloves",
+                "original": "5 garlic cloves"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "28 ounce can petite diced tomatos",
+                "original": "1 28 ounce can petite diced tomatos"
+            },
+            {
+                "quantity": "1",
+                "unit": "can",
+                "item": "kidney beans (drained and rinsed)",
+                "original": "1 can kidney beans (drained and rinsed)"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "chopped green beans",
+                "original": "1 cup chopped green beans"
+            },
+            {
+                "quantity": "4",
+                "unit": "cups",
+                "item": "vegetable broth",
+                "original": "4 cups vegetable broth"
+            },
+            {
+                "quantity": "2",
+                "unit": "",
+                "item": "bay leaves",
+                "original": "2 bay leaves"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "small pasta",
+                "original": "1 cup small pasta"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "parsley",
+                "original": "parsley"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282288",
+        "title": "Shepherd's Pie",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "small yellow onion",
+                "original": "1 small onion"
+            },
+            {
+                "quantity": "1",
+                "unit": "lb",
+                "item": "ground beef",
+                "original": "1 lb ground beef"
+            },
+            {
+                "quantity": "1",
+                "unit": "tablespoon",
+                "item": "worcestershire sauce",
+                "original": "1 tablespoon worcestershire sauce"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "garlic cloves",
+                "original": "5 garlic cloves"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "flour",
+                "original": "2 tablespoons flour"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "tomato paste",
+                "original": "2 tablespoons tomato paste"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "broth",
+                "original": "1 cup broth"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "frozen mixed peas & carrots",
+                "original": "1 cup frozen mixed peas & carrots"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "cup",
+                "item": "frozen corn kernels",
+                "original": "1/2 cup frozen corn kernels"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "russet potatoes",
+                "original": "5 russet potatoes"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "stick butter",
+                "original": "1 stick butter"
+            },
+            {
+                "quantity": "1/3",
+                "unit": "cup",
+                "item": "half & half",
+                "original": "1/3 cup half & half"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282289",
+        "title": "BFast Cass",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "lb",
+                "item": "pork sausage (jimmy dean)",
+                "original": "1 lb pork sausage (jimmy dean)"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "large shallot",
+                "original": "1 large shallot"
+            },
+            {
+                "quantity": "6",
+                "unit": "",
+                "item": "large eggs",
+                "original": "6 large eggs"
+            },
+            {
+                "quantity": "8",
+                "unit": "oz",
+                "item": "sour cream",
+                "original": "8 oz sour cream"
+            },
+            {
+                "quantity": "3/4",
+                "unit": "cup",
+                "item": "milk",
+                "original": "3/4 cup milk"
+            },
+            {
+                "quantity": "8",
+                "unit": "ounce",
+                "item": "cheese",
+                "original": "8 ounce cheese"
+            },
+            {
+                "quantity": "4",
+                "unit": "cups",
+                "item": "frozen shredded hash browns",
+                "original": "4 cups frozen shredded hash browns"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228a",
+        "title": "Pork Fried Rice",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "vegetable oil",
+                "original": "2 tablespoons vegetable oil"
+            },
+            {
+                "quantity": "3",
+                "unit": "",
+                "item": "large eggs",
+                "original": "3 large eggs"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "",
+                "item": "yellow onion",
+                "original": "1/2 yellow onion"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "carrot",
+                "original": "1 carrot"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "pound",
+                "item": "ground pork",
+                "original": "1/2 pound ground pork"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "garlic cloves",
+                "original": "5 garlic cloves"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "frozen peas",
+                "original": "1 cup frozen peas"
+            },
+            {
+                "quantity": "1",
+                "unit": "tablespoon",
+                "item": "ginger",
+                "original": "1 tablespoon ginger"
+            },
+            {
+                "quantity": "2",
+                "unit": "",
+                "item": "portions rice",
+                "original": "2 portions rice"
+            },
+            {
+                "quantity": "3",
+                "unit": "",
+                "item": "green onions",
+                "original": "3 green onions"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoon",
+                "item": "soy sauce",
+                "original": "2 tablespoon soy sauce"
+            },
+            {
+                "quantity": "1",
+                "unit": "tablespoon",
+                "item": "hoisin sauce",
+                "original": "1 tablespoon hoisin sauce"
+            },
+            {
+                "quantity": "1",
+                "unit": "teaspoon",
+                "item": "sesame oil",
+                "original": "1 teaspoon sesame oil"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228b",
+        "title": "Beef Stroganoff",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1 1/2",
+                "unit": "pounds",
+                "item": "steak tips",
+                "original": "1 1/2 pounds steak tips"
+            },
+            {
+                "quantity": "4",
+                "unit": "tablespoons",
+                "item": "butter",
+                "original": "4 tablespoons butter"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "white onion",
+                "original": "1 white onion"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "garlic cloves",
+                "original": "5 garlic cloves"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "pack mushrooms",
+                "original": "1 pack mushrooms"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "flour",
+                "original": "2 tablespoons flour"
+            },
+            {
+                "quantity": "1 1/2",
+                "unit": "cups",
+                "item": "broth",
+                "original": "1 1/2 cups broth"
+            },
+            {
+                "quantity": "1",
+                "unit": "tablespoon",
+                "item": "soy sauce",
+                "original": "1 tablespoon soy sauce"
+            },
+            {
+                "quantity": "1",
+                "unit": "tablespoon",
+                "item": "dijon mustard",
+                "original": "1 tablespoon dijon mustard"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "lemon",
+                "original": "1 lemon"
+            },
+            {
+                "quantity": "3/4",
+                "unit": "cups",
+                "item": "sour cream",
+                "original": "3/4 cups sour cream"
+            },
+            {
+                "quantity": "9",
+                "unit": "oz",
+                "item": "pasta",
+                "original": "9 oz pasta"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "parsley",
+                "original": "parsley"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 2,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228c",
+        "title": "Try a New Recipe!",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "Look it up in the recipe book!",
+                "original": "Look it up in the recipe book!"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 2,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228d",
+        "title": "Chicken Noodle Soup",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1/2",
+                "unit": "tablespoon",
+                "item": "butter",
+                "original": "1/2 tablespoon butter"
+            },
+            {
+                "quantity": "5",
+                "unit": "",
+                "item": "ribs celery",
+                "original": "5 ribs celery"
+            },
+            {
+                "quantity": "4",
+                "unit": "",
+                "item": "large carrots",
+                "original": "4 large carrots"
+            },
+            {
+                "quantity": "4",
+                "unit": "cloves",
+                "item": "garlic",
+                "original": "4 cloves garlic"
+            },
+            {
+                "quantity": "10",
+                "unit": "cups",
+                "item": "broth",
+                "original": "10 cups broth"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "rosemary",
+                "original": "rosemary"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "thyme",
+                "original": "thyme"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "crushed red pepper flakes or cayenne",
+                "original": "crushed red pepper flakes or cayenne"
+            },
+            {
+                "quantity": "4",
+                "unit": "cups",
+                "item": "noodles",
+                "original": "4 cups noodles"
+            },
+            {
+                "quantity": "3",
+                "unit": "cups",
+                "item": "rotisserie chicken",
+                "original": "3 cups rotisserie chicken"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228e",
+        "title": "Chunky Italian Vegetable Soup",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "4",
+                "unit": "",
+                "item": "large carrots",
+                "original": "4 large carrots"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "italian seasoning",
+                "original": "italian seasoning"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "parsley",
+                "original": "parsley"
+            },
+            {
+                "quantity": "8",
+                "unit": "cups",
+                "item": "broth",
+                "original": "8 cups broth"
+            },
+            {
+                "quantity": "2",
+                "unit": "cans",
+                "item": "kidney beans",
+                "original": "2 cans kidney beans"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "14oz can diced tomato",
+                "original": "1 14oz can diced tomato"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "bay leaf",
+                "original": "1 bay leaf"
+            },
+            {
+                "quantity": "1/3",
+                "unit": "cup",
+                "item": "tomato paste",
+                "original": "1/3 cup tomato paste"
+            },
+            {
+                "quantity": "3",
+                "unit": "cups",
+                "item": "spinach",
+                "original": "3 cups spinach"
+            },
+            {
+                "quantity": "1 1/3",
+                "unit": "cup",
+                "item": "pasta",
+                "original": "1 1/3 cup pasta"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c56974509228228f",
+        "title": "Frito Pie",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "pound",
+                "item": "ground beef",
+                "original": "1 pound ground beef"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "yellow onion",
+                "original": "1 yellow onion"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "chili powder",
+                "original": "chili powder"
+            },
+            {
+                "quantity": "1",
+                "unit": "can",
+                "item": "rotel motel holiday inn",
+                "original": "1 can rotel motel holiday inn"
+            },
+            {
+                "quantity": "1 1/2",
+                "unit": "cups",
+                "item": "tomato sauce",
+                "original": "1 1/2 cups tomato sauce"
+            },
+            {
+                "quantity": "1",
+                "unit": "cup",
+                "item": "frozen corn kernels",
+                "original": "1 cup frozen corn kernels"
+            },
+            {
+                "quantity": "1",
+                "unit": "can",
+                "item": "kidney beans",
+                "original": "1 can kidney beans"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "9.25 oz bag of fritos",
+                "original": "1 9.25 oz bag of Fritos"
+            },
+            {
+                "quantity": "2",
+                "unit": "cups",
+                "item": "cheese",
+                "original": "2 cups cheese"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "sour cream",
+                "original": "sour cream"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 2,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282290",
+        "title": "Ground Beef and Sausage Rice Casserole",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "lb",
+                "item": "ground beef",
+                "original": "1 lb ground beef"
+            },
+            {
+                "quantity": "1",
+                "unit": "lb",
+                "item": "sausage",
+                "original": "1 lb sausage"
+            },
+            {
+                "quantity": "3",
+                "unit": "",
+                "item": "celery ribs",
+                "original": "3 celery ribs"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "garlic powder",
+                "original": "garlic powder"
+            },
+            {
+                "quantity": "10.5",
+                "unit": "ounces",
+                "item": "condensed cream of chicken soup",
+                "original": "10.5 ounces condensed cream of chicken soup"
+            },
+            {
+                "quantity": "10.5",
+                "unit": "ounces",
+                "item": "cream of celery soup",
+                "original": "10.5 ounces cream of celery soup"
+            },
+            {
+                "quantity": "4",
+                "unit": "cups",
+                "item": "broth",
+                "original": "4 cups broth"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "portion rice",
+                "original": "1 portion rice"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282291",
+        "title": "Burrito Bowls",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "2",
+                "unit": "",
+                "item": "chicken breast",
+                "original": "2 chicken breast"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "portion rice",
+                "original": "1 portion rice"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "cup",
+                "item": "pico de gallo",
+                "original": "1/2 cup pico de gallo"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "black beans",
+                "original": "black beans"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "shredded cheese",
+                "original": "shredded cheese"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "chili powder",
+                "original": "chili powder"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "",
+                "item": "red onion",
+                "original": "1/2 red onion"
+            },
+            {
+                "quantity": "1/2",
+                "unit": "",
+                "item": "avocado",
+                "original": "1/2 avocado"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "sweet potato",
+                "original": "sweet potato"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": 2,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696e4070c569745092282292",
+        "title": "Chicken and Brussels Sprouts with Apple Cider Sauce",
+        "date": "2025-09-05",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "pound",
+                "item": "brussels sprouts",
+                "original": "1 pound brussels sprouts"
+            },
+            {
+                "quantity": "2",
+                "unit": "",
+                "item": "sweet apples (like gala)",
+                "original": "2 sweet apples (like gala)"
+            },
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "red onion",
+                "original": "1 red onion"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "rosemary",
+                "original": "rosemary"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "olive oil",
+                "original": "olive oil"
+            },
+            {
+                "quantity": "2",
+                "unit": "tablespoons",
+                "item": "butter",
+                "original": "2 tablespoons butter"
+            },
+            {
+                "quantity": "4",
+                "unit": "",
+                "item": "chicken breast",
+                "original": "4 chicken breast"
+            },
+            {
+                "quantity": "2/3",
+                "unit": "cup",
+                "item": "apple cider",
+                "original": "2/3 cup apple cider"
+            },
+            {
+                "quantity": "",
+                "unit": "",
+                "item": "apple cider vinegar",
+                "original": "apple cider vinegar"
+            }
+        ],
+        "oven": true,
+        "stove": true,
+        "portions": 3,
+        "created_at": "2026-01-19",
+        "updated_at": "2026-01-19",
+        "tags": [],
+        "difficulty": null,
+        "cook_time": null,
+        "prep_time": null
+    },
+    {
+        "_id": "696f9bc61f4e4c92bd5c0870",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9bd91f4e4c92bd5c0871",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9c141f4e4c92bd5c0872",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9c981f4e4c92bd5c0873",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9cb91f4e4c92bd5c0874",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9ce71f4e4c92bd5c0875",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "_id": "696f9d191f4e4c92bd5c0876",
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    },
+    {
+        "title": "Error Monitor Test Recipe",
+        "date": "2026-01-20",
+        "ingredients": [
+            {
+                "quantity": "1",
+                "unit": "",
+                "item": "test ingredient",
+                "original": "1 test ingredient"
+            }
+        ],
+        "oven": false,
+        "stove": true,
+        "portions": "2",
+        "_id": "696f9d191f4e4c92bd5c0876",
+        "created_at": "2026-01-20",
+        "updated_at": "2026-01-20"
+    }
+]

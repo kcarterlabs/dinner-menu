@@ -27,8 +27,8 @@ export RAPID_API_FORECAST_KEY="your_api_key_here"
 
 ### Option 1: Using the startup script (Recommended)
 ```bash
-chmod +x start.sh
-./start.sh
+chmod +x scripts/start.sh
+./scripts/start.sh
 ```
 
 This will start both the Flask API and Streamlit frontend automatically.
@@ -42,7 +42,7 @@ python app.py
 
 **Terminal 2 - Start the Streamlit frontend:**
 ```bash
-streamlit run streamlit_app.py
+streamlit run scripts/streamlit_app.py
 ```
 
 ## Access the Application
@@ -113,13 +113,19 @@ The project includes comprehensive test coverage with **automatic data isolation
 - `backups/` directory is never touched by tests
 - Tests use isolated test data in `tests/test_data/` (auto-created and cleaned up)
 
-See [DATA_PROTECTION.md](DATA_PROTECTION.md) for complete details.
+See [docs/DATA_PROTECTION.md](docs/DATA_PROTECTION.md) for complete details.
 
 ### Running Tests
 
 ```bash
-# Run all tests
-./run_tests.sh
+# Run all tests with comprehensive checks
+./scripts/testing/run_all_tests.sh
+
+# Run pytest tests only
+./scripts/testing/run_tests.sh
+
+# Quick system health check
+./scripts/testing/quick_test.sh
 
 # Run specific test file
 python -m pytest tests/test_e2e.py -v

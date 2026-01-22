@@ -4,6 +4,11 @@ import json
 import shutil
 from unittest.mock import patch
 
+# Load environment variables from .env file before any tests run
+from dotenv import load_dotenv
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(parent_dir, '.env'))
+
 # Test data directory
 TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 TEST_RECIPES_FILE = os.path.join(TEST_DATA_DIR, 'test_recipes.json')
@@ -72,7 +77,7 @@ def isolate_recipes_file(monkeypatch):
     try:
         import importlib.util
         spec = importlib.util.spec_from_file_location("add_recipe", 
-            os.path.join(parent_dir, "add-recipe.py"))
+            os.path.join(parent_dir, "scripts", "add-recipe.py"))
         add_recipe = importlib.util.module_from_spec(spec)
         monkeypatch.setattr(add_recipe, 'file_path', TEST_RECIPES_FILE)
         monkeypatch.setattr(add_recipe, 'backup_dir', TEST_BACKUP_DIR)

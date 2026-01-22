@@ -228,6 +228,33 @@
         </div>
       </div>
 
+      <!-- Image Upload Section -->
+      <div class="form-group">
+        <label>Recipe Image (optional)</label>
+        <input
+          type="file"
+          accept="image/*"
+          @change="handleImageUpload"
+          ref="imageInput"
+          style="margin-top: 8px;"
+        />
+        <div v-if="imagePreview" style="margin-top: 15px;">
+          <img
+            :src="imagePreview"
+            alt="Recipe preview"
+            style="max-width: 300px; max-height: 300px; border-radius: 8px; object-fit: cover;"
+          />
+          <button
+            @click="removeImage"
+            type="button"
+            class="btn btn-small"
+            style="display: block; margin-top: 10px; background: #ff6b6b; color: white;"
+          >
+            🗑️ Remove Image
+          </button>
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary" :disabled="loading">
         {{ loading ? 'Adding Recipe...' : 'Add Recipe' }}
       </button>
@@ -262,6 +289,11 @@ export default {
     const loading = ref(false)
     const successMessage = ref('')
     const errorMessage = ref('')
+    
+    // Image upload state
+    const imagePreview = ref(null)
+    const imageData = ref(null)
+    const imageInput = ref(null)
     
     // Bulk import state
     const inputMode = ref('single')
@@ -419,7 +451,8 @@ export default {
           ingredients: ingredients.value,
           oven: recipe.value.oven,
           stove: recipe.value.stove,
-          portions: String(recipe.value.portions)
+          portions: String(recipe.value.portions),
+          image: imageData.value  // Include base64 image data
         }
 
         await axios.post('/api/recipes', recipeData)
@@ -442,6 +475,11 @@ export default {
           original: ''
         }
         fuzzyMatches.value = []
+        imagePreview.value = null
+        imageData.value = null
+        if (imageInput.value) {
+          imageInput.value.value = ''
+        }
         
         // Reload ingredients for future searches
         await loadAllIngredients()
@@ -501,6 +539,38 @@ export default {
       bulkIngredientText.value = ''
     }
 
+    const handleImageUpload = (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        errorMessage.value = 'Please select an image file'
+        return
+      }
+
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        errorMessage.value = 'Image size must be less than 2MB'
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        imagePreview.value = e.target.result
+        imageData.value = e.target.result  // Store base64 data
+      }
+      reader.readAsDataURL(file)
+    }
+
+    const removeImage = () => {
+      imagePreview.value = null
+      imageData.value = null
+      if (imageInput.value) {
+        imageInput.value.value = ''
+      }
+    }
+
     onMounted(() => {
       loadAllIngredients()
     })
@@ -517,6 +587,9 @@ export default {
       bulkIngredientText,
       parsedIngredients,
       parsing,
+      imagePreview,
+      imageData,
+      imageInput,
       onIngredientInput,
       formatIngredient,
       addIngredient,
@@ -525,7 +598,9 @@ export default {
       submitRecipe,
       parseBulkIngredients,
       confirmBulkImport,
-      cancelBulkImport
+      cancelBulkImport,
+      handleImageUpload,
+      removeImage
     }
   }
 }

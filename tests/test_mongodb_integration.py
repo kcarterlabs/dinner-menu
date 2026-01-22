@@ -10,9 +10,18 @@ from datetime import datetime
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, parent_dir)
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv(os.path.join(parent_dir, '.env'))
+
 
 class TestMongoDBConnection(unittest.TestCase):
     """Test MongoDB connection and authentication"""
+    
+    def setUp(self):
+        """Reset MongoDB singleton before each test"""
+        import db
+        db._mongodb_instance = None
     
     def test_mongodb_connection(self):
         """Test that MongoDB connection is successful"""
@@ -25,7 +34,6 @@ class TestMongoDBConnection(unittest.TestCase):
             
             # Test that we can ping the server
             mongo.client.server_info()
-            mongo.close()
         except Exception as e:
             self.fail(f"MongoDB connection failed: {e}")
     
@@ -40,7 +48,6 @@ class TestMongoDBConnection(unittest.TestCase):
         try:
             mongo = MongoDB()
             self.assertTrue(mongo.db is not None, "Should successfully authenticate with special characters in password")
-            mongo.close()
         except Exception as e:
             self.fail(f"Authentication failed with special characters: {e}")
     
@@ -50,7 +57,6 @@ class TestMongoDBConnection(unittest.TestCase):
         
         mongo = MongoDB()
         self.assertEqual(mongo.db.name, 'dinner_menu', "Should connect to dinner_menu database")
-        mongo.close()
 
 
 class TestRecipeDB(unittest.TestCase):
