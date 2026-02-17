@@ -228,3 +228,122 @@ jobs:
           echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_FRONTEND }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_FRONTEND }}:latest" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+  release:
+    name: Create Versioned Release
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    permissions:
+      contents: write
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Generate version tag
+        id: version
+        run: |
+          # Generate version based on date and time: v2026.02.16-143052
+          VERSION="v$(date -u +'%Y.%m.%d-%H%M%S')"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Generated version: $VERSION"
+      
+      - name: Create and push git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a ${{ steps.version.outputs.version }} -m "Automated release ${{ steps.version.outputs.version }}"
+          git push origin ${{ steps.version.outputs.version }}
+          echo "✅ Git tag created and pushed"
+      
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get the last tag (excluding the one we just created)
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.version.outputs.version }}" | head -n 1)
+          
+          if [ -z "$PREVIOUS_TAG" ]; then
+            # First release
+            echo "Initial automated release" > notes.txt
+          else
+            # Generate changelog from commits since last tag
+            echo "Changes since $PREVIOUS_TAG:" > notes.txt
+            echo "" >> notes.txt
+            git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%an)" --no-merges >> notes.txt
+          fi
+          
+          # Add build information
+          echo "" >> notes.txt
+          echo "" >> notes.txt
+          echo "## Build Information" >> notes.txt
+          echo "- **Commit**: ${{ github.sha }}" >> notes.txt
+          echo "- **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> notes.txt
+          echo "- **Triggered by**: ${{ github.actor }}" >> notes.txt
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: notes.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+      
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Tag ECR images with release version
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BACKEND_REPO: ${{ secrets.ECR_REGISTRY_BACKEND }}
+          FRONTEND_REPO: ${{ secrets.ECR_REGISTRY_FRONTEND }}
+          SHA_TAG: ${{ github.sha }}
+        run: |
+          echo "🏷️  Tagging ECR images with release version: $VERSION"
+          
+          # Pull the images that were built with SHA tag
+          echo "Pulling backend image..."
+          docker pull $REGISTRY/$BACKEND_REPO:$SHA_TAG
+          
+          echo "Pulling frontend image..."
+          docker pull $REGISTRY/$FRONTEND_REPO:$SHA_TAG
+          
+          # Tag backend with release version
+          echo "Tagging backend image..."
+          docker tag $REGISTRY/$BACKEND_REPO:$SHA_TAG $REGISTRY/$BACKEND_REPO:$VERSION
+          docker push $REGISTRY/$BACKEND_REPO:$VERSION
+          
+          # Tag frontend with release version
+          echo "Tagging frontend image..."
+          docker tag $REGISTRY/$FRONTEND_REPO:$SHA_TAG $REGISTRY/$FRONTEND_REPO:$VERSION
+          docker push $REGISTRY/$FRONTEND_REPO:$VERSION
+          
+          echo "✅ ECR images tagged with $VERSION"
+      
+      - name: Release summary
+        run: |
+          echo "## 🎉 Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ECR Images Tagged:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_BACKEND }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REGISTRY_FRONTEND }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View the release at: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
