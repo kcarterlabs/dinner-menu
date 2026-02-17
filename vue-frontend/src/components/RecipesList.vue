@@ -46,6 +46,13 @@
 
             <div style="display: flex; gap: 10px; margin-top: 15px;">
               <button
+                @click="openEditModal(recipe)"
+                class="btn btn-small"
+                style="background: #48bb78; color: white;"
+              >
+                ✏️ Edit
+              </button>
+              <button
                 @click="openImageUpload(recipe._id)"
                 class="btn btn-small"
                 style="background: #667eea; color: white;"
@@ -106,6 +113,70 @@
       @change="handleImageUpload"
       style="display: none;"
     />
+
+    <!-- Edit Recipe Modal -->
+    <div v-if="editModalOpen" class="modal-overlay" @click.self="closeEditModal">
+      <div class="modal-content">
+        <h3>✏️ Edit Recipe</h3>
+        
+        <div style="margin-top: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+            Recipe Name:
+          </label>
+          <input
+            v-model="editForm.title"
+            type="text"
+            placeholder="Recipe name"
+            style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px;"
+          />
+        </div>
+
+        <div style="margin-top: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: bold;">
+            Ingredients:
+          </label>
+          <div v-for="(ingredient, idx) in editForm.ingredients" :key="idx" style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input
+              v-model="editForm.ingredients[idx]"
+              type="text"
+              placeholder="e.g., 2 cups flour"
+              style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+            />
+            <button
+              @click="removeIngredient(idx)"
+              class="btn btn-danger btn-small"
+              style="padding: 8px 12px;"
+            >
+              🗑️
+            </button>
+          </div>
+          <button
+            @click="addIngredient"
+            class="btn btn-small"
+            style="margin-top: 8px; background: #667eea; color: white;"
+          >
+            ➕ Add Ingredient
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 30px; justify-content: flex-end;">
+          <button
+            @click="closeEditModal"
+            class="btn"
+            style="background: #e2e8f0; color: #333;"
+          >
+            Cancel
+          </button>
+          <button
+            @click="saveEdit"
+            class="btn"
+            style="background: #48bb78; color: white;"
+          >
+            💾 Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -122,6 +193,12 @@ export default {
     const currentRecipeId = ref(null)
     const dragRecipeId = ref(null)
     const placeholderRefs = ref({})
+    const editModalOpen = ref(false)
+    const editForm = ref({
+      _id: null,
+      title: '',
+      ingredients: []
+    })
 
     const loadRecipes = async () => {
       try {
@@ -300,6 +377,65 @@ export default {
       return parts.join(' ') || 'Unknown ingredient'
     }
 
+    const openEditModal = (recipe) => {
+      editForm.value = {
+        _id: recipe._id,
+        title: recipe.title,
+        ingredients: recipe.ingredients.map(ing => {
+          // If ingredient is an object, get the original or format it
+          if (typeof ing === 'object') {
+            return ing.original || formatIngredient(ing)
+          }
+          return ing
+        })
+      }
+      editModalOpen.value = true
+    }
+
+    const closeEditModal = () => {
+      editModalOpen.value = false
+      editForm.value = {
+        _id: null,
+        title: '',
+        ingredients: []
+      }
+    }
+
+    const addIngredient = () => {
+      editForm.value.ingredients.push('')
+    }
+
+    const removeIngredient = (index) => {
+      editForm.value.ingredients.splice(index, 1)
+    }
+
+    const saveEdit = async () => {
+      if (!editForm.value.title || editForm.value.title.trim() === '') {
+        alert('Recipe name is required')
+        return
+      }
+
+      // Filter out empty ingredients
+      const ingredients = editForm.value.ingredients
+        .filter(ing => ing && ing.trim() !== '')
+
+      if (ingredients.length === 0) {
+        alert('At least one ingredient is required')
+        return
+      }
+
+      try {
+        await axios.put(`/api/recipes/${editForm.value._id}`, {
+          title: editForm.value.title,
+          ingredients: ingredients
+        })
+        await loadRecipes()
+        closeEditModal()
+      } catch (error) {
+        alert(`Error updating recipe: ${error.message}`)
+      }
+    }
+
     const setPlaceholderRef = (el, recipeId) => {
       if (el) {
         placeholderRefs.value[recipeId] = el
@@ -362,6 +498,8 @@ export default {
       loading,
       imageInput,
       dragRecipeId,
+      editModalOpen,
+      editForm,
       deleteRecipe,
       openImageUpload,
       handleImageUpload,
@@ -370,6 +508,11 @@ export default {
       handleDropOnRecipe,
       removeImage,
       formatIngredient,
+      openEditModal,
+      closeEditModal,
+      addIngredient,
+      removeIngredient,
+      saveEdit,
       setPlaceholderRef,
       focusPlaceholder
     }
@@ -400,5 +543,29 @@ export default {
   border-color: #667eea;
   background: #e6f2ff;
   border-style: solid;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 </style>

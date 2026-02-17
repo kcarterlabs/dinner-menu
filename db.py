@@ -32,14 +32,16 @@ class MongoDB:
             localhost_uri = f'mongodb://admin:{encoded_password}@localhost:27017/'
             docker_uri = f'mongodb://admin:{encoded_password}@mongodb:27017/'
             
+            logger.info(f"Trying localhost connection...")
             try:
-                # Try localhost first
-                self.client = MongoClient(localhost_uri, serverSelectionTimeoutMS=2000)
+                # Try localhost first with longer timeout
+                self.client = MongoClient(localhost_uri, serverSelectionTimeoutMS=5000)
                 self.client.server_info()
                 self.db = self.client[database_name]
                 logger.info(f"Connected to MongoDB at localhost:27017")
                 return
-            except Exception:
+            except Exception as e:
+                logger.info(f"Localhost connection failed: {type(e).__name__}, trying docker hostname...")
                 # Localhost failed, try Docker hostname
                 try:
                     self.client = MongoClient(docker_uri, serverSelectionTimeoutMS=5000)

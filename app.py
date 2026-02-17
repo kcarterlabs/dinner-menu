@@ -307,6 +307,71 @@ def add_recipe():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route('/api/recipes/<recipe_id>', methods=['PUT'])
+def update_recipe(recipe_id):
+    """Update recipe name and/or ingredients"""
+    try:
+        data = request.get_json()
+        
+        update_data = {}
+        
+        # Update title if provided
+        if 'title' in data:
+            update_data['title'] = data['title']
+        
+        # Update ingredients if provided
+        if 'ingredients' in data:
+            ingredients = data['ingredients']
+            processed_ingredients = []
+            
+            for ing in ingredients:
+                if isinstance(ing, dict):
+                    # Already structured format
+                    processed_ingredients.append(ing)
+                elif isinstance(ing, str):
+                    # String format - parse it
+                    from ingredient_parser import parse_ingredient
+                    processed_ingredients.append(parse_ingredient(ing.strip()))
+                else:
+                    processed_ingredients.append({'item': str(ing), 'quantity': '', 'unit': '', 'original': str(ing)})
+            
+            update_data['ingredients'] = processed_ingredients
+        
+        # Update other fields if provided
+        if 'oven' in data:
+            update_data['oven'] = data['oven']
+        if 'stove' in data:
+            update_data['stove'] = data['stove']
+        if 'portions' in data:
+            update_data['portions'] = data['portions']
+        
+        if not update_data:
+            return jsonify({"success": False, "error": "No update data provided"}), 400
+        
+        if USE_MONGODB:
+            # Update MongoDB
+            if recipe_db.update_recipe(recipe_id, update_data):
+                # Get updated recipe
+                updated_recipe = recipe_db.get_recipe_by_id(recipe_id)
+                recipe_response = convert_objectid_to_str(updated_recipe)
+                return jsonify({"success": True, "message": "Recipe updated", "recipe": recipe_response})
+            else:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+        else:
+            # Fallback to JSON file
+            recipes = load_recipes()
+            recipe_index = next((i for i, r in enumerate(recipes) if r.get('_id') == recipe_id), None)
+            if recipe_index is None:
+                return jsonify({"success": False, "error": "Recipe not found"}), 404
+            
+            # Update recipe
+            recipes[recipe_index].update(update_data)
+            save_recipes(recipes)
+            return jsonify({"success": True, "message": "Recipe updated", "recipe": recipes[recipe_index]})
+    except Exception as e:
+        app.logger.error(f"Error updating recipe {recipe_id}: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route('/api/recipes/<recipe_id>', methods=['DELETE'])
 def delete_recipe(recipe_id):
     try:

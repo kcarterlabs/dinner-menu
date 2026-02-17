@@ -61,3 +61,4 @@ deploy.sh
 
 # MongoDB data directory (database files should never be in git)
 data/
+backups/mongodb-backup*
